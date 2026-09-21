@@ -1,0 +1,44 @@
+# JEV 0.5.0 Windows 便携版验证记录
+
+验证日期：2026-09-21（Asia/Taipei）。实际运行环境：Windows 11 家庭版中文版 x64，10.0.26200。全程使用 Windows 原生环境；没有使用 Docker、WSL 或虚拟机。
+
+## 交付形态
+
+- Electron 44.4.3，electron-builder 26.15.3，独立 CPython 3.13.12。
+- EXE：`JEV-0.5.0-windows-x64-portable.exe`，125,101,120 字节。
+- EXE SHA256：`f674e8082298c0e98fb7350c2fd5aebc8db12ac30f01637acc707a1a5b7387dc`。
+- 完整便携目录约 3.51 GB，含 EXE、JEV-runtime、JEV-models、默认资料、源代码和第三方许可证。必须保留整个目录。
+- 本地 NanoJev checkpoint 保留原始 FP32 文件，2,385,039,280 字节；SHA256 为 `f68c47d66998231b86b7e91b4ed5e82ae23acf104c8b7cd6d165c3ac7b7ffe1b`。
+- ZIP 内的 SHA256SUMS.txt 覆盖全部发行载荷；封包后由 `desktop/scripts/verify_release.py` 逐文件解压读取并校验 SHA256 与 ZIP CRC。该次校验结果保存在项目 `release/verification-result.json`，ZIP 自身校验值在同级 `.zip.sha256` 文件。
+
+## 已完成验证
+
+| 检查 | 结果与证据 |
+| --- | --- |
+| Python 回归 | 22 项通过，包括已有检索回归及桌面鉴权、目录隔离测试；仅有 Starlette/httpx 弃用提示。 |
+| Electron 生命周期逻辑 | 3 项 Node 测试通过，覆盖便携根路径、同源判断和后端就绪握手。 |
+| 前端构建 | Vite production build 成功。最终 ASAR 的 main/preload/lifecycle 与源码逐字节一致。 |
+| 独立 Python | 用包内 python.exe 的 `-I` 隔离模式执行真实测试；刻意设置的主机 PYTHONPATH 不被读取，导入来自包内依赖。 |
+| 本地模型推理 | 原始 NanoJev 在 CPU FP32 模式完成真实检索，未调用云服务；运行时测试报告包含 loaded=true、local_only=true。 |
+| 文档与 OCR | Markdown、DOCX、PDF 三种夹具完成解析；本地 OCR 从测试图片识别出 JEVOFFLINETEST2026。 |
+| 后端进程 | 真实嵌入式 Python 启动握手、随机 loopback 端口、正常退出均通过；无令牌、错误令牌、外部 Origin 被拒绝。 |
+| 网络限制 | Python 外部连接测试被阻止；模型强制本地文件加载，页面只允许应用自身来源。未修改操作系统网络或防火墙。 |
+| 最终 portable EXE | 实际双击等价启动了发行目录的 EXE；Electron 从临时目录运行，Python 从发行目录 JEV-runtime 运行。 |
+| 启动时间 | 02:25:05.780 启动 EXE，02:25:12.035 本地服务就绪，约 6.3 秒。这是当前机器一次实测，不是跨机器性能承诺。 |
+| 原生目录选择 | 菜单 Ctrl+O 打开 Windows 文件夹选择器，选择测试资料目录、确认扫描后成功切换；重启保留选择。随后恢复默认 JEV 目录。 |
+| 设置持久化 | 候选数量从 12 改成 4，关闭并重启后界面仍为 4；最终恢复 12。 |
+| 最终 EXE 真实问题 | 提问“资料室文档借阅期限是多久？”，返回“资料室文档借阅期限为十四天。每位读者最多同时借阅三份文档。”，仅 1 个段落；定位开始使用.md 第 10 段、行 19，阅读器高亮一致。首次模型加载在内的查询耗时 25.246 秒。 |
+| 重复启动 | 同一数据目录重复启动聚焦已有窗口，没有创建第二个检索服务。 |
+| 故障恢复 | 验证身份后只终止该桌面程序自己的 Python 子进程；窗口显示恢复页，点击“重新启动”后服务在新的本地端口恢复，资料索引保留。 |
+| 正常退出 | Ctrl+Q 后 Python exit code=0；Electron、Python 和便携启动器均退出，临时会话标记删除。 |
+| 与网页版并存 | 原有 8765 网页服务保持独立，桌面端使用随机端口及独立数据目录。 |
+
+运行时测试原始 JSON 位于项目 `desktop/build/smoke/runtime-smoke-result.json` 与 `desktop/build/process-smoke/result.json`。桌面验收的临时索引和日志归档在 `desktop/build/verified-portable-data`，不会进入离线 ZIP。交付默认资料只有项目自带入门文档。
+
+## 明确边界
+
+当前已在上述 Windows 11 机器验证；未在另一台无开发环境的干净电脑或 Windows 10 上实际运行，也没有进行全量长文档性能测试。隔离运行时测试验证了主机 Python 不参与加载，但不等同于跨设备认证。
+
+该 EXE 没有代码签名证书。首次加载约 2.4 GB 模型需要时间和内存，建议至少 16 GB 内存。CPU 速度、文档规模和磁盘会影响体验。
+
+使用的是社区开源 NanoJev，不是 Typesafe 官方 Jev 私有权重。公开 checkpoint 以游戏决策为训练目标；这些测试证明程序链路可运行，不证明通用文档召回准确率。系统返回原文证据，不生成摘要或改写回答。

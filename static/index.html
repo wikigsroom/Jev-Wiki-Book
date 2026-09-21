@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f7fa">
+  <title>JEV · 本地文档检索</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#question">跳到检索</a>
+  <header><a href="/" class="brand">JEV<span>.</span></a><span>本地文档检索 · 基础界面</span></header>
+  <main>
+    <section class="sources" aria-labelledby="source-heading">
+      <h2 id="source-heading">文档目录</h2>
+      <form id="source-form">
+        <label for="path">本机文件夹路径</label>
+        <input id="path" name="path" required autocomplete="off" spellcheck="false">
+        <div class="actions"><button type="button" id="browse">浏览本机</button><button type="button" id="default">默认 JEV 目录</button></div>
+        <button type="submit" class="primary">扫描并使用此目录</button>
+      </form>
+      <p id="status" class="muted">正在连接本机服务…</p>
+      <div class="actions"><button id="scan">重新扫描</button><label class="upload">导入文档<input id="files" type="file" multiple accept=".md,.markdown,.txt,.rst,.log,.json,.jsonl,.csv,.html,.htm,.pdf,.docx"></label></div>
+      <div id="job" role="status"></div>
+      <button id="cancel-job" hidden>取消索引</button>
+      <h2>目录中的文档</h2>
+      <div id="documents"></div>
+    </section>
+    <section class="search" aria-labelledby="search-heading">
+      <p class="eyebrow">带着问题，回到原文</p>
+      <h1 id="search-heading">在文档里，找到依据。</h1>
+      <form id="query-form">
+        <label for="question">问题或关键词</label>
+        <textarea id="question" name="question" required maxlength="3000" rows="3" placeholder="输入一个具体问题…"></textarea>
+        <button id="ask" class="primary">查找原文</button>
+      </form>
+      <p id="message" role="status" aria-live="polite"></p>
+      <div id="results"></div>
+    </section>
+    <aside class="reader" aria-labelledby="reader-heading">
+      <h2 id="reader-heading">原文阅读器</h2>
+      <div id="reader"><p class="muted">选择文档或检索结果，查看原文与上下文。</p></div>
+    </aside>
+  </main>
+  <footer>文档与模型均在本机处理。返回原文及明确标注的 OCR 转写，不生成回答。</footer>
+</body>
+</html>

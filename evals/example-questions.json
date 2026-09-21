@@ -1,0 +1,6 @@
+[
+  {"id":"opening-hours","question":"资料室开放时间是什么？","gold_text":"资料室开放时间为每周二至周六 09:30–17:30。"},
+  {"id":"loan-limit","question":"资料借阅上限是多少？","gold_text":"资料借阅上限为每人 4 份，每份最长借阅 14 天。"},
+  {"id":"missing-email","question":"资料室客服邮箱是什么？","gold_text":""},
+  {"id":"missing-manager","question":"资料室负责人的姓名是什么？","gold_text":""}
+]

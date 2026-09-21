@@ -1,0 +1,31 @@
+{
+  "name": "jev-desktop",
+  "version": "0.5.0",
+  "description": "JEV 本地文档检索桌面版",
+  "author": "JEV project",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests/*.test.cjs",
+    "prepare-runtime": "python -X utf8 scripts/prepare_runtime.py",
+    "build": "node scripts/build.cjs",
+    "pack": "electron-builder --win --dir --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.4.3",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "local.jev.desktop",
+    "productName": "JEV",
+    "copyright": "JEV project; third-party components retain their respective licenses",
+    "directories": {"output": "dist", "buildResources": "assets"},
+    "files": ["main.cjs", "preload.cjs", "lifecycle.cjs", "renderer/**", "assets/icon.png", "assets/icon.ico", "package.json"],
+    "asar": true,
+    "npmRebuild": false,
+    "compression": "normal",
+    "win": {"target": [{"target": "portable", "arch": ["x64"]}], "icon": "assets/icon.ico", "signExecutable": false, "requestedExecutionLevel": "asInvoker"},
+    "portable": {"artifactName": "JEV-${version}-windows-x64-portable.exe", "requestExecutionLevel": "user", "unpackDirName": false, "splashImage": "assets/splash.bmp"}
+  }
+}
