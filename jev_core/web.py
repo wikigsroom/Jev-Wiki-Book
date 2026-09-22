@@ -170,6 +170,8 @@ class ThreadServer:
                 time.sleep(.05)
             raise RuntimeError("服务启动失败")
         except BaseException:
+            if hasattr(self, "server"):
+                self.server.should_exit = True
             self.socket.close()
             raise
 
@@ -235,7 +237,10 @@ class DesktopSharing:
                     atomic_json(self.path, settings.model_dump())
             except Exception as exc:
                 self.settings = settings.model_copy(update={"enabled": False})
-                self.error = "查询端启动失败，请检查端口是否已被占用。"
+                failed_server, self.server = self.server, None
+                if failed_server:
+                    failed_server.stop()
+                self.error = "查询端未能启用，请检查端口占用和设置目录的写入权限。"
                 raise RuntimeError(self.error) from exc
             return self.status()
 
