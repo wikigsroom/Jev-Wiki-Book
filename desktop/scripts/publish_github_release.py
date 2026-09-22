@@ -10,6 +10,20 @@ import subprocess
 from release_portable import PROJECT, RELEASE, VERSION
 
 
+def find_release(api, tag):
+    # The release-by-tag endpoint excludes unpublished drafts. The authenticated
+    # list endpoint includes drafts and lets a retry reuse the existing release.
+    page = 1
+    while True:
+        releases = api(f"/releases?per_page=100&page={page}")
+        for release in releases:
+            if release["tag_name"] == tag:
+                return release
+        if len(releases) < 100:
+            return None
+        page += 1
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--gh", default="gh", help="Path to official gh executable")
@@ -59,12 +73,15 @@ def main():
     print(f"Verified {len(assets)} local assets and write access to {args.repo} at {tag}", flush=True)
     if args.check:
         return
-    release = api("/releases/tags/" + tag, optional=True)
+    release = find_release(api, tag)
     notes = str(PROJECT / "docs/releases" / (tag + ".md"))
     title = f"JEV {VERSION} · Windows x64 offline portable"
     if release is None:
         gh("release", "create", tag, "--repo", args.repo, "--verify-tag", "--draft", "--title", title, "--notes-file", notes)
-        release = api("/releases/tags/" + tag)
+        release = find_release(api, tag)
+    if release is None:
+        raise RuntimeError("Created release is not visible; retry without creating a duplicate")
+    release_route = "/releases/" + str(release["id"])
     existing = {asset["name"]: asset for asset in release["assets"]}
     for entry in assets:
         remote = existing.get(entry["name"])
@@ -75,14 +92,14 @@ def main():
             continue
         print("Uploading: " + entry["name"], flush=True)
         gh("release", "upload", tag, str(folder / entry["name"]), "--repo", args.repo)
-    uploaded = api("/releases/tags/" + tag)
+    uploaded = api(release_route)
     uploaded_files = {asset["name"]: asset for asset in uploaded["assets"]}
     for entry in assets:
         remote = uploaded_files.get(entry["name"], {})
         if remote.get("state") != "uploaded" or remote.get("size") != entry["size"] or remote.get("digest") != "sha256:" + entry["sha256"]:
             raise RuntimeError("Remote verification failed; release remains in its previous state: " + entry["name"])
     gh("release", "edit", tag, "--repo", args.repo, "--draft=false", "--title", title, "--notes-file", notes, "--latest")
-    final = api("/releases/tags/" + tag)
+    final = api(release_route)
     if final["draft"]:
         raise RuntimeError("Release still marked as draft")
     receipt = {"repository": args.repo, "tag": tag, "commit": local, "url": final["html_url"], "assets": [{key: asset.get(key) for key in ["name", "size", "digest", "browser_download_url"]} for asset in final["assets"]]}
