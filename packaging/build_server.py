@@ -20,7 +20,9 @@ def main():
                "--collect-all", "rapidocr", "--collect-all", "onnxruntime",
                "--collect-all", "tokenizers", "--collect-all", "safetensors",
                "--collect-data", "certifi", "--copy-metadata", "torch", "--copy-metadata", "transformers",
-               "--collect-data", "docx",
+               # python-docx uses parts/../templates paths; Linux requires the
+               # intermediate parts directory to exist even when it holds code.
+               "--collect-all", "docx",
                "--hidden-import", "uvicorn.logging", "--hidden-import", "uvicorn.loops.asyncio",
                "--hidden-import", "uvicorn.protocols.http.h11_impl", "--hidden-import", "uvicorn.lifespan.on",
                "--exclude-module", "tkinter", "--exclude-module", "matplotlib", "--exclude-module", "scipy",
