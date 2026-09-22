@@ -39,7 +39,9 @@ for path in sorted(ROOT.rglob(f"JEV-cli-{args.version}-*")):
         else:
             assert prefix[:5] == b"\x7fELF\x02" and prefix[18:20] == b"\x3e\x00"
             assert archive.getmember(executable).mode & 0o111
-        reports.append({"archive": path.name, "sha256": archive_hash, "payload_files": len(entries), "verified": True})
+        with open_entry("JEV-server/build-info.json") as stream:
+            build = json.load(stream)
+        reports.append({"archive": path.name, "sha256": archive_hash, "payload_files": len(entries), "build_commit": build["commit"], "verified": True})
 assert len(reports) == 2, reports
 output = PROJECT / f"release/native-archive-verification-{args.version}.json"
 output.write_text(json.dumps(reports, indent=2), encoding="utf-8")

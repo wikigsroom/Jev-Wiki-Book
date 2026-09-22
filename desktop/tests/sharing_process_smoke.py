@@ -15,6 +15,7 @@ import urllib.request
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--bundle", type=Path, required=True)
+    parser.add_argument("--output", type=Path, help="Version-specific report; previous release reports are preserved")
     args = parser.parse_args()
     bundle = args.bundle.resolve()
     project = Path(__file__).resolve().parents[2]
@@ -103,7 +104,8 @@ def main():
         shutdown()
         report = {"passed": True, "bundle": bundle.name, "public_routes_restricted": True, "cpu_query_seconds": elapsed,
                   "real_model_original_evidence": answer["evidence"], "settings_survive_restart": True, "listeners_closed": True}
-        output = project / "desktop/build/sharing-verification.json"
+        output = args.output or project / "desktop/build" / (bundle.name + "-sharing-verification.json")
+        output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False), flush=True)
     finally:
