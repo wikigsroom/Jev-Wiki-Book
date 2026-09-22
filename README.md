@@ -4,7 +4,7 @@
 
 ## 启动
 
-下载对应平台的完整二进制目录，保留 `_internal`。将已有 JEV 离线包的 `JEV-models` 放在程序同级，或通过 `--models-dir` 指定已有模型路径。运行 `JEV-server.exe`（Windows）或 `./JEV-server`（Linux）。
+从 [v0.6.0 Release](https://github.com/wikigsroom/Jev-Wiki-Book/releases/tag/v0.6.0) 下载对应平台的程序包，解压后保留 `_internal`。将已有 JEV 离线包的 `JEV-models` 放在程序同级，或通过 `--models-dir` 指定已有模型路径；首次部署可下载 Release 的共用模型分卷，按 [安装说明](https://github.com/wikigsroom/Jev-Wiki-Book/blob/main/docs/DISTRIBUTION_0_6.md) 合并。运行 `JEV-server.exe`（Windows）或 `./JEV-server`（Linux）。
 
 | 入口 | 默认地址 | 权限 |
 | --- | --- | --- |
