@@ -29,6 +29,7 @@ def main():
     parser.add_argument("--gh", default="gh", help="Path to official gh executable")
     parser.add_argument("--repo", default="wikigsroom/Jev-Wiki-Book")
     parser.add_argument("--check", action="store_true", help="Validate access, tag and files without external writes")
+    parser.add_argument("--title", help="Human-readable release title")
     args = parser.parse_args()
     tag = "v" + VERSION
     folder = RELEASE / ("github-" + tag)
@@ -75,7 +76,7 @@ def main():
         return
     release = find_release(api, tag)
     notes = str(PROJECT / "docs/releases" / (tag + ".md"))
-    title = f"JEV {VERSION} · Windows x64 offline portable"
+    title = args.title or f"JEV {VERSION} · Windows desktop and Windows/Linux CLI"
     if release is None:
         gh("release", "create", tag, "--repo", args.repo, "--verify-tag", "--draft", "--title", title, "--notes-file", notes)
         release = find_release(api, tag)
@@ -103,7 +104,7 @@ def main():
     if final["draft"]:
         raise RuntimeError("Release still marked as draft")
     receipt = {"repository": args.repo, "tag": tag, "commit": local, "url": final["html_url"], "assets": [{key: asset.get(key) for key in ["name", "size", "digest", "browser_download_url"]} for asset in final["assets"]]}
-    (RELEASE / "github-published.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")
+    (RELEASE / f"github-published-{tag}.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(receipt, ensure_ascii=False, indent=2), flush=True)
 
 
