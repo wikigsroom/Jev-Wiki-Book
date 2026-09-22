@@ -82,6 +82,9 @@ def copy(source, target):
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists() and source.stat().st_size == target.stat().st_size and source.stat().st_mtime_ns == target.stat().st_mtime_ns:
         return
+    if target.exists() and target.stat().st_nlink > 1:
+        # Updating a new bundle must never mutate an older hardlinked release.
+        target.unlink()
     shutil.copy2(source, target)
 
 

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
 import ipaddress
 import json
 import logging
@@ -19,11 +18,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from .common import BASE_DIR, atomic_json
 from .retrieval import RagService
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 UI_DIR = BASE_DIR / "web_ui"
 
 
-def secure_surface(app, external_origin=None):
+def secure_surface(app, external_origin=None, max_body_bytes=65536):
     """Reject browser cross-origin requests and unconfigured DNS hostnames."""
     extra_host = urlsplit(external_origin).hostname if external_origin else None
 
@@ -47,7 +46,7 @@ def secure_surface(app, external_origin=None):
             body = bytearray()
             async for part in request.stream():
                 size += len(part)
-                if size > 65536:
+                if size > max_body_bytes:
                     return JSONResponse({"detail": "请求过大"}, status_code=413)
                 body.extend(part)
             request._body = bytes(body)
@@ -95,6 +94,27 @@ class PublicReader:
         self.model = model
         self.busy = threading.BoundedSemaphore(1)
 
+    async def answer(self, question):
+        if not self.busy.acquire(blocking=False):
+            raise HTTPException(429, "正在处理其他查询，请稍后重试")
+
+        def run():
+            # Cancellation of an HTTP request does not stop a CPU worker.
+            # Only that worker may release the shared admission slot.
+            try:
+                return self.query(question)
+            finally:
+                self.busy.release()
+
+        try:
+            work = asyncio.get_running_loop().run_in_executor(None, run)
+        except BaseException:
+            self.busy.release()
+            raise
+        # Observe failures even when the client has already disconnected.
+        work.add_done_callback(lambda future: future.exception() if not future.cancelled() else None)
+        return await asyncio.shield(work)
+
     def query(self, question):
         snapshot, revision = self.source()
         if snapshot is None:
@@ -131,17 +151,15 @@ def create_public_app(reader, available, external_origin=None):
     async def query(body: PublicQuestion):
         if not available():
             raise HTTPException(503, "管理员尚未开放可查询资料")
-        if not reader.busy.acquire(blocking=False):
-            raise HTTPException(429, "正在处理其他查询，请稍后重试")
         try:
-            return await asyncio.to_thread(reader.query, body.question)
+            return await reader.answer(body.question)
         except AccessChanged:
             raise HTTPException(409, "可访问资料已变更，请重新查询") from None
+        except HTTPException:
+            raise
         except Exception:
             logging.getLogger(__name__).exception("Public query failed")
             raise HTTPException(503, "查询暂时无法完成，请联系管理员检查本地服务") from None
-        finally:
-            reader.busy.release()
     return app
 
 
@@ -153,6 +171,10 @@ class ThreadServer:
         try:
             if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
                 self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            else:
+                # POSIX must allow reuse after server-side TIME_WAIT. This
+                # still rejects another live listener (no SO_REUSEPORT).
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.bind((host, port))
             self.socket.listen(128)
             self.port = self.socket.getsockname()[1]
@@ -173,6 +195,8 @@ class ThreadServer:
             if hasattr(self, "server"):
                 self.server.should_exit = True
             self.socket.close()
+            if hasattr(self, "thread"):
+                self.thread.join(4)
             raise
 
     def stop(self):
@@ -180,7 +204,12 @@ class ThreadServer:
         self.thread.join(4)
         if self.thread.is_alive():
             self.server.force_exit = True
+            self.thread.join(1)
         self.socket.close()
+
+    def wait(self):
+        """Drain remaining CPU workers before releasing the data-directory lock."""
+        self.thread.join()
 
 
 class SharingSettings(BaseModel):
@@ -194,10 +223,13 @@ class DesktopSharing:
     def __init__(self, store, model, path):
         self.store, self.model, self.path = store, model, path
         self.lock = threading.RLock()
+        self.operations = threading.Lock()
         self.settings = SharingSettings()
         self.server = None
         self.revision = 0
         self.error = None
+        self.reader = PublicReader(self.source, model)
+        self.retired = []
         if path.exists():
             try:
                 self.settings = SharingSettings.model_validate_json(path.read_text(encoding="utf-8"))
@@ -217,32 +249,43 @@ class DesktopSharing:
                     "url": f"http://127.0.0.1:{self.settings.port}" if self.server else None, "error": self.error}
 
     def update(self, settings, persist=True):
-        with self.lock:
-            if not self.error and settings == self.settings and (self.server is not None) == settings.enabled:
-                return self.status()
-            old_server = self.server
-            # Revoke in-flight results before replacing the owned listener.
-            self.server = None
-            self.revision += 1
+        with self.operations:
+            with self.lock:
+                if not self.error and settings == self.settings and (self.server is not None) == settings.enabled:
+                    return self.status()
+                old_server, self.server = self.server, None
+                self.revision += 1
+                self.settings = self.settings.model_copy(update={"enabled": False})
+            # A finishing query needs self.lock to check revocation. Never hold
+            # that lock while waiting for its listener to stop.
             if old_server:
                 old_server.stop()
-            self.settings = settings
-            self.error = None
+                self.retired.append(old_server)
+            self.retired = [server for server in self.retired if server.thread.is_alive()]
+            with self.lock:
+                self.settings = settings
+                self.error = None
             try:
                 if settings.enabled:
-                    reader = PublicReader(self.source, self.model)
-                    app = create_public_app(reader, lambda: self.settings.enabled)
+                    app = create_public_app(self.reader, self.available)
                     self.server = ThreadServer(app, "0.0.0.0" if settings.lan else "127.0.0.1", settings.port)
                 if persist:
                     atomic_json(self.path, settings.model_dump())
             except Exception as exc:
-                self.settings = settings.model_copy(update={"enabled": False})
-                failed_server, self.server = self.server, None
+                with self.lock:
+                    self.revision += 1
+                    self.settings = settings.model_copy(update={"enabled": False})
+                    failed_server, self.server = self.server, None
+                    self.error = "查询端未能启用，请检查端口占用和设置目录的写入权限。"
                 if failed_server:
                     failed_server.stop()
-                self.error = "查询端未能启用，请检查端口占用和设置目录的写入权限。"
+                    self.retired.append(failed_server)
                 raise RuntimeError(self.error) from exc
             return self.status()
+
+    def available(self):
+        snapshot, _ = self.source()
+        return bool(snapshot and snapshot["generation"] and snapshot["blocks"])
 
     def start_saved(self):
         try:
@@ -250,10 +293,16 @@ class DesktopSharing:
         except RuntimeError:
             logging.getLogger(__name__).warning("Saved web listener could not start")
 
-    def close(self):
-        with self.lock:
-            self.revision += 1
-            self.settings = self.settings.model_copy(update={"enabled": False})
-            server, self.server = self.server, None
-        if server:
-            server.stop()
+    def close(self, wait=False):
+        with self.operations:
+            with self.lock:
+                self.revision += 1
+                self.settings = self.settings.model_copy(update={"enabled": False})
+                server, self.server = self.server, None
+            if server:
+                server.stop()
+                self.retired.append(server)
+            if wait:
+                for server in self.retired:
+                    server.wait()
+            self.retired = [server for server in self.retired if server.thread.is_alive()]

@@ -1,5 +1,6 @@
 """Package desktop code and one shared model set without duplicating large ZIPs."""
 from __future__ import annotations
+import argparse
 import bisect
 import hashlib
 import io
@@ -98,6 +99,9 @@ def verify(archive, expected):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--app-only", action="store_true", help="Reuse the already published original model bundle")
+    args = parser.parse_args()
     payload = {}
     for line in (BUNDLE / "SHA256SUMS.txt").read_text(encoding="utf-8").splitlines():
         checksum, name = line.split("  ", 1)
@@ -111,6 +115,8 @@ def main():
     verify(desktop, {BUNDLE.name + "/" + name: value for name, value in app_checksums.items()})
     desktop.with_name(desktop.name + ".sha256").write_text(f"{sha256(desktop)}  {desktop.name}\n", encoding="ascii")
     print(f"Desktop archive verified: {desktop.name}", flush=True)
+    if args.app_only:
+        return
 
     models = {name: BUNDLE / name for name in payload if name.startswith("JEV-models/")}
     for name in ["NanoJev-LICENSE.txt", "Qwen3-LICENSE.txt", "RapidOCR-LICENSE.txt", "PaddleOCR-LICENSE.txt", "model-provenance.json"]:

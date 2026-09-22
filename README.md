@@ -6,20 +6,20 @@
 
 ## Windows 便携版
 
-0.6.0 的设置中可以启用独立 Web 查询端（默认端口 18766），浏览器只能查询桌面端已建立的当前文档库。[Web 共享说明](docs/WEB_SHARING.md)。另有完全不使用 Electron 的 [cli 分支](https://github.com/wikigsroom/Jev-Wiki-Book/tree/cli)，提供 Windows / Linux 管理端和查询端。
+0.6.1 的设置中可以启用独立 Web 查询端（默认端口 18766），浏览器只能查询桌面端已建立的当前文档库。[Web 共享说明](docs/WEB_SHARING.md)。另有完全不使用 Electron 的 [cli 分支](https://github.com/wikigsroom/Jev-Wiki-Book/tree/cli)，提供 Windows / Linux 管理端和查询端。
 
 发行下载入口：[GitHub Releases](https://github.com/wikigsroom/Jev-Wiki-Book/releases)。建议 Windows 11 x64、16 GB 内存和至少 10 GB 可用磁盘空间（包括下载、合并、解压和数据）。当前在 Windows 11 实测；EXE 未进行代码签名。
 
-0.6.0 将程序与共用模型分开分发。桌面版下载 `JEV-0.6.0-windows-x64-app.zip`；首次部署还需要：
+0.6.1 将程序与共用模型分开分发。桌面版下载 `JEV-0.6.1-windows-x64-app.zip`；首次部署还需要：
 
 - `JEV-models-0.6.0.zip.001` 和 `.002`
 - `JEV-models-0.6.0-downloads.json` 与 `Merge-JEV-Models.ps1`
 
-合并并解压模型，将 `JEV-models` 放在 EXE 同级，然后运行 `JEV-0.6.0-windows-x64-portable.exe`。[完整安装与校验说明](docs/DISTRIBUTION_0_6.md) 含 Windows 和 Linux 命令。已有 0.5.0 完整模型可直接复用，无需再次下载；历史完整包的安装方式保留在 [0.5.0 发布文档](docs/RELEASING.md)。
+合并并解压模型，将 `JEV-models` 放在 EXE 同级，然后运行 `JEV-0.6.1-windows-x64-portable.exe`。[完整安装与校验说明](docs/DISTRIBUTION_0_6_1.md) 含 Windows 和 Linux 命令。已有 0.5.0 完整模型可直接复用，无需再次下载；历史完整包的安装方式保留在 [0.5.0 发布文档](docs/RELEASING.md)。
 
 ```text
-JEV-Windows-Portable-0.6.0/
-├─ JEV-0.6.0-windows-x64-portable.exe
+JEV-Windows-Portable-0.6.1/
+├─ JEV-0.6.1-windows-x64-portable.exe
 ├─ JEV-runtime/    独立 Python、解析器和推理依赖
 ├─ JEV-models/     原始 NanoJev 与 OCR 权重
 ├─ JEV/            默认文档目录

@@ -1,14 +1,18 @@
 """Verify CI archive payloads and platform executable headers before delivery."""
 import hashlib
+import argparse
 import json
 from pathlib import Path
 import tarfile
 import zipfile
 
 PROJECT = Path(__file__).resolve().parents[2]
-ROOT = PROJECT / "release/native-0.6.0"
+parser = argparse.ArgumentParser()
+parser.add_argument("--version", default="0.6.1")
+args = parser.parse_args()
+ROOT = PROJECT / f"release/native-{args.version}"
 reports = []
-for path in sorted(ROOT.rglob("JEV-cli-0.6.0-*")):
+for path in sorted(ROOT.rglob(f"JEV-cli-{args.version}-*")):
     if not path.is_file() or not (path.name.endswith(".zip") or path.name.endswith(".tar.gz")):
         continue
     with path.open("rb") as stream:
@@ -37,6 +41,6 @@ for path in sorted(ROOT.rglob("JEV-cli-0.6.0-*")):
             assert archive.getmember(executable).mode & 0o111
         reports.append({"archive": path.name, "sha256": archive_hash, "payload_files": len(entries), "verified": True})
 assert len(reports) == 2, reports
-output = PROJECT / "release/native-archive-verification.json"
+output = PROJECT / f"release/native-archive-verification-{args.version}.json"
 output.write_text(json.dumps(reports, indent=2), encoding="utf-8")
 print(json.dumps(reports), flush=True)

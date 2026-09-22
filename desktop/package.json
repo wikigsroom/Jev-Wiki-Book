@@ -1,6 +1,6 @@
 {
   "name": "jev-desktop",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "JEV 本地文档检索桌面版",
   "author": "JEV project",
   "private": true,

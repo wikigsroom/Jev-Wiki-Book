@@ -2,9 +2,11 @@ const form = document.querySelector('#query-form');
 const results = document.querySelector('#results');
 const message = document.querySelector('#message');
 const button = document.querySelector('#search');
-fetch('/api/health').then(r => r.json()).then(data => {
+function updateAvailability() { return fetch('/api/health').then(r => { if (!r.ok) throw new Error('Unavailable'); return r.json(); }).then(data => {
   document.querySelector('#availability').textContent = data.available ? '资料服务已就绪' : '等待管理员开放资料';
-}).catch(() => { document.querySelector('#availability').textContent = '服务暂时无法连接'; });
+}).catch(() => { document.querySelector('#availability').textContent = '服务暂时无法连接'; }); }
+updateAvailability();
+window.addEventListener('focus', updateAvailability);
 function element(tag, text, cls) { const node = document.createElement(tag); node.textContent = text; if (cls) node.className = cls; return node; }
 form.addEventListener('submit', async event => {
   event.preventDefault();
@@ -25,5 +27,5 @@ form.addEventListener('submit', async event => {
       card.append(heading, element('blockquote', item.text), copy); results.append(card);
     }
   } catch (error) { message.textContent = error.message || '无法连接查询服务，请稍后重试。'; }
-  finally { button.disabled = false; }
+  finally { button.disabled = false; updateAvailability(); }
 });

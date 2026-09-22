@@ -83,7 +83,12 @@ function App() {
   const [sharing, setSharing] = useState(null);
   const [sharingBusy, setSharingBusy] = useState(false);
   const [sharingError, setSharingError] = useState("");
-  useEffect(() => { if (settingsOpen) api("/api/sharing").then(setSharing).catch(reason => setSharingError(reason.message)); }, [settingsOpen]);
+  async function loadSharing() {
+    setSharingError("");
+    try { setSharing(await api("/api/sharing")); }
+    catch (reason) { setSharingError(reason.message); }
+  }
+  useEffect(() => { if (settingsOpen) loadSharing(); }, [settingsOpen]);
   async function saveSharing(event) {
     event.preventDefault(); setSharingBusy(true); setSharingError("");
     try { setSharing(await post("/api/sharing", { enabled: sharing.enabled, port: Number(sharing.port), lan: sharing.lan })); notify("查询端设置已保存"); }
@@ -396,12 +401,14 @@ function App() {
     <Modal title="检索设置与运行状态" open={settingsOpen} onClose={() => setSettingsOpen(false)}>
       <div className="settings-fields"><label htmlFor="top-k">候选段落数量<select id="top-k" name="top-k" value={topK} onChange={event => changePreference("topK", Number(event.target.value))}>{[4,8,12,20,30].map(value => <option key={value} value={value}>{value} 个</option>)}</select></label><label htmlFor="max-evidence">最多返回段落<select id="max-evidence" name="max-evidence" value={maxEvidence} onChange={event => changePreference("maxEvidence", Number(event.target.value))}>{[1,2,3,4,6].map(value => <option key={value} value={value}>{value} 个</option>)}</select></label></div>
       <p className="modal-copy">候选数量越多，检查范围越大，也需要更长时间。只返回通过筛选的内容。</p>
+      {sharingError && <p className="field-error" role="alert">{sharingError} <button type="button" className="text-button" onClick={loadSharing}>重新加载共享设置</button></p>}
+      {!sharing && !sharingError && <p className="modal-copy" role="status">正在读取查询端设置…</p>}
       {sharing && <form className="sharing-settings" onSubmit={saveSharing}>
         <h3>浏览器查询端</h3><p className="modal-copy">允许浏览器查询当前已建立的文档库。目录管理、导入和删除仍由桌面端完成。</p>
         <label className="sharing-toggle"><input type="checkbox" checked={sharing.enabled} onChange={event => setSharing({ ...sharing, enabled: event.target.checked })} />启用 Web 查询端</label>
         <div className="settings-fields"><label htmlFor="web-port">访问端口<input id="web-port" type="number" min="1024" max="65535" value={sharing.port} onChange={event => setSharing({ ...sharing, port: event.target.value })} required /></label><label htmlFor="web-scope">访问范围<select id="web-scope" value={sharing.lan ? "lan" : "local"} onChange={event => setSharing({ ...sharing, lan: event.target.value === "lan" })}><option value="local">仅本机</option><option value="lan">局域网</option></select></label></div>
         {sharing.running && <p className="sharing-address">本机访问地址 <span>{sharing.url}</span>{sharing.lan && <small>其他设备使用本机的局域网 IP 和上述端口访问。可连接此端口的人均可查询当前资料。</small>}</p>}
-        {(sharingError || sharing.error) && <p className="field-error" role="alert">{sharingError || sharing.error}</p>}
+        {sharing.error && !sharingError && <p className="field-error" role="alert">{sharing.error}</p>}
         <button type="submit" className="button secondary" disabled={sharingBusy}>{sharingBusy ? "正在应用…" : "应用查询端设置"}</button>
       </form>}
       <dl className="system-details"><dt>本地决策模型</dt><dd>NanoJev · Qwen3-0.6B</dd><dt>模型状态</dt><dd>{config?.local_jev?.loaded ? "已加载 · " + config.local_jev.device : config?.local_jev?.checkpoint_configured ? "已安装，首次检索时加载" : "未安装"}</dd><dt>图片文字识别</dt><dd>{config?.ocr?.configured ? "RapidOCR · 本地权重已安装" : "本地 OCR 权重未安装"}</dd><dt>回答方式</dt><dd>原文摘录，不生成回答</dd></dl>

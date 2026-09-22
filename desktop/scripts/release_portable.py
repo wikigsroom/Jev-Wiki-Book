@@ -13,7 +13,7 @@ import zipfile
 
 from prepare_runtime import BACKEND, DESKTOP, PROJECT, WEIGHT_SHA256, copy, sha256, write_json
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 RELEASE = PROJECT / "release"
 BUNDLE = RELEASE / f"JEV-Windows-Portable-{VERSION}"
 
@@ -42,6 +42,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-archive", action="store_true")
     parser.add_argument("--assets-only", action="store_true")
+    parser.add_argument("--reuse-runtime", type=Path, help="Hardlink identical runtime files from an existing release")
     args = parser.parse_args()
     BUNDLE.mkdir(parents=True, exist_ok=True)
     exe_name = f"JEV-{VERSION}-windows-x64-portable.exe"
@@ -65,7 +66,14 @@ def main():
                 copy(source, target)
     for source in BACKEND.rglob("*"):
         if source.is_file() and "__pycache__" not in source.parts and source.suffix not in {".pyc", ".pyo"}:
-            copy(source, BUNDLE / "JEV-runtime" / source.relative_to(BACKEND))
+            relative = source.relative_to(BACKEND)
+            target = BUNDLE / "JEV-runtime" / relative
+            previous = args.reuse_runtime / relative if args.reuse_runtime else None
+            if not target.exists() and previous and previous.is_file() and previous.stat().st_size == source.stat().st_size and sha256(previous) == sha256(source):
+                target.parent.mkdir(parents=True, exist_ok=True)
+                os.link(previous, target)
+            else:
+                copy(source, target)
     copy(DESKTOP / "assets/开始使用.md", BUNDLE / "JEV/开始使用.md")
     copy(DESKTOP / "README.md", BUNDLE / "使用说明.md")
     copy(DESKTOP / "VERIFICATION.md", BUNDLE / "验证记录.md")

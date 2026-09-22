@@ -35,7 +35,8 @@ sharing = DesktopSharing(store, local_jev, STORAGE_DIR / "web-sharing.json")
 async def lifespan(app):
     await asyncio.to_thread(sharing.start_saved)
     yield
-    await asyncio.to_thread(sharing.close)
+    await asyncio.to_thread(sharing.close, wait=True)
+    await asyncio.to_thread(jobs.close)
 
 
 app = FastAPI(title="JEV · 本地文档检索", version=VERSION, lifespan=lifespan)

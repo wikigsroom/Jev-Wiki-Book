@@ -4,11 +4,11 @@ Electron 桌面窗口 + 独立 CPython 3.13 运行环境 + 原始 NanoJev checkp
 
 ## 使用便携版
 
-完整解压对应版本便携包，双击其中的 `JEV-0.6.0-windows-x64-portable.exe`。不要在压缩包内直接运行，也不要只复制 EXE。已发布的历史 0.5.0 分卷仍按对应版本的发布说明使用。
+完整解压对应版本便携包，双击其中的 `JEV-0.6.1-windows-x64-portable.exe`。不要在压缩包内直接运行，也不要只复制 EXE。已发布的历史 0.5.0 分卷仍按对应版本的发布说明使用。
 
 ```text
-JEV-Windows-Portable-0.6.0/
-  JEV-0.6.0-windows-x64-portable.exe
+JEV-Windows-Portable-0.6.1/
+  JEV-0.6.1-windows-x64-portable.exe
   JEV-models/       原始 NanoJev 与 OCR 权重，必须与 EXE 一起保留
   JEV-runtime/     完整独立 Python 与推理环境，必须与 EXE 一起保留
   JEV/             默认文档目录，附带入门示例
