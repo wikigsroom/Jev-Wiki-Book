@@ -30,7 +30,9 @@
 
 ## 验证证据
 
-源码回归、原生二进制、真实 CPU 推理、OCR、重启和 UI 操作分别验证。原生构建工作流会输出可审查的 JSON 报告与截图，随修订发行版提供。最终构建结果见 Release 验证记录，不能以源码单元测试替代二进制验证。
+已完成 main 38 项 Python 回归、3 项 Node 生命周期测试和前端构建；CLI 在 Windows 2022 / Ubuntu 22.04 各通过 42 项回归。两个原生二进制的真实 CPU 查询、DOCX/PDF/OCR、表单和同端口重启均通过。Electron 在独立 Windows runner 完成实际设置点击、错误重试、共享查询、切换目录和重启恢复；本机 Windows 11 另验证 portable EXE 启动、关闭和包内独立 Python 推理。
+
+工作流：[35776788873](https://github.com/wikigsroom/Jev-Wiki-Book/actions/runs/35776788873)。CLI 构建提交 66ac07e3a9ce9d9769fad7cb1813aa496ac75972，Electron 应用验收提交 4266b715a2f3b0b807b2adb224e7959239798c05；后续文档和发布工具提交不改变已验收应用实现。JSON 报告和程序校验值随 v0.6.1 提供，详见 [桌面验证记录](https://github.com/wikigsroom/Jev-Wiki-Book/blob/main/desktop/VERIFICATION.md)。没有使用本地 Docker、WSL 或虚拟机；CI 和本机测试所建窗口已关闭。
 
 ## 仍有的产品边界
 
