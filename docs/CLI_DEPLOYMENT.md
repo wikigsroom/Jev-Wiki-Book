@@ -13,7 +13,7 @@
 
 ## 启动与使用
 
-Windows 执行 `JEV-server.exe`；Linux 先为入口添加执行权限 `chmod +x JEV-server`，再执行 `./JEV-server`。完整保留 `_internal`，同级放置已有完整便携包的 `JEV-models`（NanoJev 原始 FP32 权重和 OCR）。也可用 `--models-dir` 指定现有模型目录，不需复制。
+Windows 解压 ZIP 后执行 `JEV-server.exe`；Linux 使用 `tar -xzf JEV-cli-0.6.0-linux-x64.tar.gz` 解压，再执行 `./JEV-server/JEV-server`，归档保留执行权限。完整保留 `_internal`，程序同级放置已有完整便携包的 `JEV-models`（NanoJev 原始 FP32 权重和 OCR）。也可用 `--models-dir` 指定现有模型目录，不需复制。
 
 ```text
 JEV-server/
@@ -49,4 +49,4 @@ JEV-server/
 
 ## 构建
 
-在 Windows x64 和 Linux x86_64 各自使用 Python 3.13 安装 CPU PyTorch、requirements-dev.txt 与 packaging/requirements-build.txt，然后执行 `python packaging/build_server.py`。GitHub Actions 的 Native CLI binaries 工作流在两个原生 runner 构建，并用真实本地模型验证改密、文档开放、查询和撤回访问。CI 产物不重复携带约 2.4 GB 的模型；模型需要使用指定的原始 NanoJev 和 OCR 文件。
+在 Windows x64 和 Linux x86_64 各自使用 Python 3.13 安装 CPU PyTorch、requirements-dev.txt 与 packaging/requirements-build.txt，然后执行 `python packaging/build_server.py`。GitHub Actions 的 Native CLI binaries 工作流在两个原生 runner 构建，并用真实本地模型验证改密、文档开放、查询、撤回访问、DOCX/PDF/OCR，以及管理端和查询端表单。Windows 交付 ZIP，Linux 交付 tar.gz，附有 SHA256。CI 产物不重复携带约 2.4 GB 的模型；模型需要使用指定的原始 NanoJev 和 OCR 文件。
