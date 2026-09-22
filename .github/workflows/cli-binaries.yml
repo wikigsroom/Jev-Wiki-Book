@@ -33,18 +33,21 @@ jobs:
         run: |
           python -X utf8 download_nanojev.py
           python -X utf8 setup_ocr.py
+      - name: Install isolated UI test browser
+        run: python -m playwright install --with-deps chromium
       - name: Verify native binary with real CPU inference
         shell: bash
         run: |
           EXE=server_build/dist/JEV-server/JEV-server
           if [ "$RUNNER_OS" = Windows ]; then EXE="$EXE.exe"; fi
           "$EXE" --models-dir models --check
-          python -X utf8 packaging/smoke_binary.py --binary "$EXE" --models models --output server_build/native-verification.json
+          python -X utf8 packaging/smoke_binary.py --binary "$EXE" --models models --output server_build/native-verification.json --ui
       - uses: actions/upload-artifact@v4
         with:
           name: JEV-cli-0.6.0-${{ matrix.os }}-x64
           path: |
             server_build/dist/JEV-server/
             server_build/native-verification.json
+            server_build/ui-verification/
           compression-level: 3
           retention-days: 30

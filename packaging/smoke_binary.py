@@ -25,6 +25,7 @@ def main():
     parser.add_argument("--binary", type=Path, required=True)
     parser.add_argument("--models", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--ui", action="store_true", help="Also test admin and query forms in CI Chromium")
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     workspace = Path(tempfile.mkdtemp(prefix="native-smoke-", dir=args.output.parent))
@@ -113,6 +114,7 @@ def main():
         assert request(origin + "/api/admin/publication", {"grants": [grant]})[0] == 200
         started = time.monotonic()
         code, answer = request(query_origin + "/api/query", {"question": "资料室开放时间是什么？"})
+        query_seconds = round(time.monotonic() - started, 3)
         assert code == 200 and answer["evidence"] and "09:30" in answer["evidence"][0]["text"], answer
         assert str(docs) not in json.dumps(answer)
         assert "SECRET-NOT-PUBLISHED-429" not in json.dumps(answer)
@@ -122,9 +124,12 @@ def main():
         assert model["loaded"] and model["device"] == "cpu" and model["precision"] == "fp32", model
         assert request(origin + "/api/admin/publication", {"grants": []})[0] == 200
         assert request(query_origin + "/api/query", {"question": "开放时间"})[0] == 503
-        report = {"passed": True, "binary": args.binary.name, "model": model, "query_seconds": round(time.monotonic() - started, 3),
+        if args.ui:
+            from ui_smoke import verify_ui
+            verify_ui(origin, query_origin, docs, args.output.parent / "ui-verification")
+        report = {"passed": True, "binary": args.binary.name, "model": model, "query_seconds": query_seconds,
                   "auth_checked": True, "password_changed": True, "publication_checked": True, "private_routes_blocked": True, "revocation_checked": True,
-                  "docx_checked": True, "pdf_checked": True, "ocr_checked": True}
+                  "docx_checked": True, "pdf_checked": True, "ocr_checked": True, "ui_checked": args.ui}
         args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
         print(json.dumps(report), flush=True)
     finally:
