@@ -278,6 +278,8 @@ class IndexJobs:
         self.lock = threading.Lock()
         self.current: dict | None = None
         self.cancel_event = threading.Event()
+        self.thread = None
+        self.closed = False
 
     def status(self):
         with self.lock:
@@ -285,26 +287,37 @@ class IndexJobs:
 
     def start(self, root: str, uploads=None) -> dict:
         resolve_root(root)
-        with self.lock:
-            if self.current and self.current["state"] == "running":
-                raise RuntimeError("已有索引任务正在运行，请等待完成或取消")
-            self.cancel_event = threading.Event()
-            self.current = {"id": uuid.uuid4().hex, "state": "running", "source_root": root,
-                            "message": "正在读取目录…", "total": 0, "completed": 0, "started_at": now()}
-            initial = copy.deepcopy(self.current)
         def progress(fields):
             with self.lock:
                 self.current.update(fields)
         def run():
             try:
-                result = self.store.build(root, progress, self.cancel_event, uploads=uploads)
+                result = self.store.build(root, progress, cancellation, uploads=uploads)
                 progress({"state": "completed", "message": "索引已更新", "result": result, "finished_at": now()})
             except Cancelled as exc:
                 progress({"state": "cancelled", "message": str(exc), "finished_at": now()})
             except Exception as exc:
                 progress({"state": "failed", "message": str(exc), "finished_at": now()})
-        threading.Thread(target=run, name="jev-index", daemon=True).start()
+        with self.lock:
+            if self.closed:
+                raise RuntimeError("服务正在关闭，无法开始新的索引任务")
+            if self.thread and self.thread.is_alive():
+                raise RuntimeError("已有索引任务正在运行，请等待完成或取消")
+            cancellation = self.cancel_event = threading.Event()
+            self.current = {"id": uuid.uuid4().hex, "state": "running", "source_root": root,
+                            "message": "正在读取目录…", "total": 0, "completed": 0, "started_at": now()}
+            initial = copy.deepcopy(self.current)
+            self.thread = threading.Thread(target=run, name="jev-index", daemon=True)
+            self.thread.start()
         return initial
+
+    def close(self):
+        with self.lock:
+            self.closed = True
+            self.cancel_event.set()
+            thread = self.thread
+        if thread:
+            thread.join()
 
     def cancel(self, job_id: str):
         with self.lock:

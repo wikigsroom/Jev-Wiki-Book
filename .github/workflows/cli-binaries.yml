@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [cli]
-    paths: ['server.py', 'jev_core/**', 'web_ui/**', 'packaging/**', 'requirements*.txt', '.github/workflows/cli-binaries.yml']
+    paths: ['server.py', 'jev_core/**', 'web_ui/**', 'tests/**', 'packaging/**', 'requirements*.txt', '.github/workflows/cli-binaries.yml']
 permissions:
   contents: read
 jobs:
@@ -27,6 +27,10 @@ jobs:
           python -m pip install rapidocr==3.9.2 onnxruntime==1.24.3
       - name: Regression tests
         run: python -X utf8 -m pytest tests -q
+      - name: Read application version
+        id: version
+        shell: bash
+        run: python -c "from jev_core.web import VERSION; import os; open(os.environ['GITHUB_OUTPUT'], 'a').write('value=' + VERSION + '\n')"
       - name: Build native executable
         run: python -X utf8 packaging/build_server.py
       - name: Download fixed local models for verification
@@ -44,9 +48,40 @@ jobs:
           python -X utf8 packaging/smoke_binary.py --binary "$EXE" --models models --output server_build/native-verification.json --ui
       - name: Archive verified runtime
         run: python -X utf8 packaging/archive_server.py
+      - uses: actions/checkout@v4
+        if: runner.os == 'Windows'
+        with:
+          ref: 4266b715a2f3b0b807b2adb224e7959239798c05
+          path: desktop-validation
+      - name: Build and test Electron settings on native Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          npm --prefix desktop-validation/frontend ci
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          npm --prefix desktop-validation/frontend run build
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          npm --prefix desktop-validation/desktop ci
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -X utf8 desktop-validation/desktop/scripts/prepare_runtime.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          npm --prefix desktop-validation/desktop run pack
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:JEV_PLAYWRIGHT_PACKAGE = python -c "from pathlib import Path; import playwright; print(Path(playwright.__file__).parent / 'driver/package')"
+          $env:JEV_TEST_MODELS = (Resolve-Path models).Path
+          node desktop-validation/desktop/tests/electron_ui_smoke.cjs
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with:
+          name: JEV-electron-ui-${{ steps.version.outputs.value }}
+          path: |
+            desktop-validation/desktop/build/ui-verification/
+            desktop-validation/desktop/build/ui-smoke-*/JEV-data/logs/
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
-          name: JEV-cli-0.6.0-${{ matrix.os }}-x64
+          name: JEV-cli-${{ steps.version.outputs.value }}-${{ matrix.os }}-x64
           path: |
             server_build/packages/
             server_build/native-verification.json

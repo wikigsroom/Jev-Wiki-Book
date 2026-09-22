@@ -71,19 +71,36 @@ def main():
     log = (workspace / "server.log").open("w", encoding="utf-8")
     command = [str(args.binary.resolve()), "--data-dir", str(workspace / "data"), "--models-dir", str(args.models.resolve()),
                "--admin-port", str(admin_port), "--web-port", str(web_port), "--web-host", "127.0.0.1"]
-    process = subprocess.Popen(command, stdout=log, stderr=log, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
-    try:
+
+    def start():
+        process = subprocess.Popen(command, stdout=log, stderr=log, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
         for _ in range(240):
             try:
                 if request(query_origin + "/api/health")[0] == 200:
-                    break
+                    return process
             except OSError:
                 pass
             if process.poll() is not None:
                 raise RuntimeError("Binary exited during startup: " + (workspace / "server.log").read_text(encoding="utf-8"))
             time.sleep(.5)
         else:
+            process.kill()
+            process.wait(timeout=10)
             raise RuntimeError("Binary never became ready")
+
+    def stop(process):
+        process.send_signal(signal.CTRL_BREAK_EVENT if os.name == "nt" else signal.SIGTERM)
+        assert process.wait(timeout=30) == 0
+        for port in [admin_port, web_port]:
+            with socket.socket() as probe:
+                assert probe.connect_ex(("127.0.0.1", port)) != 0
+
+    process = start()
+    try:
+        duplicate = subprocess.run(command, capture_output=True, text=True, timeout=30)
+        assert duplicate.returncode != 0 and "already in use" in duplicate.stderr
+        missing = subprocess.run([str(args.binary.resolve()), "--models-dir", str(workspace / "missing-models"), "--check"], capture_output=True, text=True, timeout=60)
+        assert missing.returncode == 2 and not json.loads(missing.stdout)["ready"]
         assert request(origin + "/api/admin/libraries")[0] == 401
         code, session = request(origin + "/api/admin/login", {"username": "admin", "password": "Jev-Change-Me-2026!"})
         assert code == 200
@@ -122,6 +139,17 @@ def main():
             assert request(query_origin + route)[0] == 404
         model = request(origin + "/api/admin/status")[1]["model"]
         assert model["loaded"] and model["device"] == "cpu" and model["precision"] == "fp32", model
+        revision = request(origin + "/api/admin/status")[1]["publication"]["revision"]
+        stop(process)
+        process = start()  # Same ports and same persisted data, without a delay.
+        assert request(origin + "/api/admin/status")[0] == 401
+        assert request(origin + "/api/admin/login", {"username": "admin", "password": "Jev-Change-Me-2026!"})[0] == 401
+        code, session = request(origin + "/api/admin/login", {"username": "admin", "password": "Native-Smoke-Only-2026!"})
+        assert code == 200
+        csrf = session["csrf_token"]
+        assert request(origin + "/api/admin/status")[1]["publication"]["revision"] == revision
+        code, restored = request(query_origin + "/api/query", {"question": "资料室开放时间是什么？"})
+        assert code == 200 and "09:30" in restored["evidence"][0]["text"]
         assert request(origin + "/api/admin/publication", {"grants": []})[0] == 200
         assert request(query_origin + "/api/query", {"question": "开放时间"})[0] == 503
         if args.ui:
@@ -129,7 +157,10 @@ def main():
             verify_ui(origin, query_origin, docs, args.output.parent / "ui-verification")
         report = {"passed": True, "binary": args.binary.name, "model": model, "query_seconds": query_seconds,
                   "auth_checked": True, "password_changed": True, "publication_checked": True, "private_routes_blocked": True, "revocation_checked": True,
-                  "docx_checked": True, "pdf_checked": True, "ocr_checked": True, "ui_checked": args.ui}
+                  "docx_checked": True, "pdf_checked": True, "ocr_checked": True, "ui_checked": args.ui,
+                  "immediate_restart_same_ports": True, "persisted_password_and_grants": True, "old_session_revoked_on_restart": True,
+                  "data_directory_lock": True, "missing_models_exit_nonzero": True}
+        stop(process)
         args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
         print(json.dumps(report), flush=True)
     finally:

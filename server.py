@@ -44,6 +44,8 @@ def main():
                 parser.error("external origins must be HTTP(S) origins without path or credentials")
     if args.admin_host != "127.0.0.1" and not args.tls_cert:
         parser.error("remote admin requires --tls-cert and --tls-key; use the loopback listener for a reverse proxy")
+    if args.admin_origin and urlsplit(args.admin_origin).scheme != "https":
+        parser.error("--admin-origin must use HTTPS for remote administration")
     args.admin_origin = args.admin_origin.rstrip("/") if args.admin_origin else None
     args.web_origin = args.web_origin.rstrip("/") if args.web_origin else None
     data = args.data_dir.resolve()
@@ -71,10 +73,13 @@ def main():
         import pymupdf
         import transformers
         from transformers.models.qwen3.modeling_qwen3 import Qwen3Model
-        print(json.dumps({"version": VERSION, "python": sys.version.split()[0], "torch": torch.__version__,
+        model_status = LocalNanoJev().status()
+        ocr_status = LocalOCR(data / "storage/ocr", models / "ocr").status()
+        ready = model_status["checkpoint_configured"] and ocr_status["configured"]
+        print(json.dumps({"version": VERSION, "ready": ready, "python": sys.version.split()[0], "torch": torch.__version__,
                           "cuda_build": torch.version.cuda, "onnx_providers": onnxruntime.get_available_providers(),
-                          "model": LocalNanoJev().status()}, ensure_ascii=False, indent=2))
-        return
+                          "model": model_status, "ocr": ocr_status}, ensure_ascii=False, indent=2))
+        return 0 if ready else 2
 
     data.mkdir(parents=True, exist_ok=True)
     data.chmod(0o700)
@@ -85,6 +90,7 @@ def main():
     except Timeout:
         raise SystemExit("This data directory is already in use by another JEV server")
     listeners = []
+    jobs = None
     try:
         ocr = LocalOCR(data / "storage/ocr", models / "ocr")
         store = KnowledgeStore(data / "storage", data / "JEV", DocumentParser(ocr))
@@ -115,8 +121,12 @@ def main():
     finally:
         for listener in reversed(listeners):
             listener.stop()
+        if jobs:
+            jobs.close()
+        for listener in listeners:
+            listener.wait()
         lock.release()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

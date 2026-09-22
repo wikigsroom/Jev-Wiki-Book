@@ -5,14 +5,17 @@ from pathlib import Path
 import platform
 import tarfile
 import zipfile
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from jev_core.web import VERSION
 BUILD = ROOT / "server_build"
 bundle = BUILD / "dist/JEV-server"
 target = BUILD / "packages"
 target.mkdir(exist_ok=True)
 system = "windows" if platform.system() == "Windows" else "linux"
-name = f"JEV-cli-0.6.0-{system}-x64"
+name = f"JEV-cli-{VERSION}-{system}-x64"
 files = sorted(file for file in bundle.rglob("*") if file.is_file())
 
 

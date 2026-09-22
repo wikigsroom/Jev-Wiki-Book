@@ -6,10 +6,13 @@ from collections import defaultdict, deque
 import hashlib
 import hmac
 import json
+import logging
+import os
 import secrets
 import threading
 import time
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -22,16 +25,27 @@ DEFAULT_PASSWORD = "Jev-Change-Me-2026!"
 COOKIE = "jev_admin_session"
 
 
+class CredentialRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    username: str = Field(min_length=1, max_length=100)
+    salt: str = Field(pattern=r"^[0-9a-f]{32}$")
+    password_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    must_change: bool
+
+
 class Credentials:
     def __init__(self, file):
         self.file = Path(file)
+        identity = os.path.normcase(str(self.file.resolve())).encode("utf-8")
+        self.cookie_name = COOKIE + "_" + hashlib.sha256(identity).hexdigest()[:16]
         self.lock = threading.RLock()
         self.sessions = {}
         self.attempts = defaultdict(deque)
         if self.file.exists():
-            self.value = json.loads(self.file.read_text(encoding="utf-8"))
-            if not {"username", "salt", "password_hash", "must_change"} <= self.value.keys():
-                raise ValueError("管理员凭据损坏，请从备份恢复")
+            try:
+                self.value = CredentialRecord.model_validate_json(self.file.read_text(encoding="utf-8")).model_dump()
+            except ValueError as exc:
+                raise ValueError("管理员凭据损坏，请从备份恢复") from exc
         else:
             self.value = self.record(DEFAULT_PASSWORD, True)
             atomic_json(self.file, self.value)
@@ -104,7 +118,14 @@ class Grant(BaseModel):
     model_config = ConfigDict(extra="forbid")
     library_id: str = Field(min_length=1, max_length=40)
     generation: str = Field(min_length=1, max_length=40)
-    document_ids: list[str] = Field(max_length=5000)
+    document_ids: list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(max_length=5000)
+
+
+class PublicationRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    revision: str = Field(pattern=r"^[0-9a-f]{32}$")
+    updated_at: str | None = None
+    grants: list[Grant] = Field(max_length=100)
 
 
 class Publication:
@@ -113,9 +134,17 @@ class Publication:
         self.lock = threading.RLock()
         self.value = {"revision": secrets.token_hex(16), "grants": []}
         if self.file.exists():
-            self.value = json.loads(self.file.read_text(encoding="utf-8"))
-            for grant in self.value["grants"]:
-                Grant.model_validate(grant)
+            try:
+                record = PublicationRecord.model_validate_json(self.file.read_text(encoding="utf-8"))
+                seen = set()
+                for grant in record.grants:
+                    snapshot = store.snapshot(grant.library_id, grant.generation)
+                    if grant.library_id in seen or not grant.document_ids or not set(grant.document_ids) <= {doc["id"] for doc in snapshot["documents"]}:
+                        raise ValueError("无效授权")
+                    seen.add(grant.library_id)
+                self.value = record.model_dump()
+            except (ValueError, KeyError) as exc:
+                raise ValueError("访问范围文件或对应索引损坏，请从备份恢复") from exc
 
     def set(self, grants):
         prepared, seen = [], set()
@@ -176,23 +205,35 @@ class Publish(BaseModel):
 
 def create_admin_app(store, jobs, model, credentials, publication, web_info, external_origin=None, secure_cookie=False):
     app = FastAPI(title="JEV 管理端", docs_url=None, redoc_url=None, openapi_url=None)
-    secure_surface(app, external_origin)
+    # Up to 100 libraries × 5,000 document IDs. The public query surface
+    # retains its independent 64 KiB bound.
+    secure_surface(app, external_origin, max_body_bytes=16 * 1024 * 1024)
     mount_ui(app, "admin.html")
 
     def auth(request, *, write=False, initial=False):
-        return credentials.authenticate(request.cookies.get(COOKIE), request.headers.get("x-csrf-token"),
+        return credentials.authenticate(request.cookies.get(credentials.cookie_name), request.headers.get("x-csrf-token"),
                                         write=write, allow_initial=initial)
 
     def signed_in(response, token, session):
-        response.set_cookie(COOKIE, token, httponly=True, samesite="strict", secure=secure_cookie,
+        response.set_cookie(credentials.cookie_name, token, httponly=True, samesite="strict", secure=secure_cookie,
                             max_age=8 * 3600, path="/")
         return {"username": credentials.value["username"], "must_change": credentials.value["must_change"], "csrf_token": session["csrf"]}
 
     def audit(action, request):
         # Audit actions, not passwords, query contents or document text.
+        try:
+            with credentials.lock:
+                with (credentials.file.parent / "audit.jsonl").open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps({"at": now(), "action": action, "peer": request.client.host}, ensure_ascii=False) + "\n")
+        except OSError:
+            logging.getLogger(__name__).exception("Admin audit write failed")
+
+    def mutate(request, operation, *args, initial=False):
+        # Revalidate inside the worker and keep authorization valid until the
+        # mutation commits. Password changes/logout cannot overtake it.
         with credentials.lock:
-            with (credentials.file.parent / "audit.jsonl").open("a", encoding="utf-8") as stream:
-                stream.write(json.dumps({"at": now(), "action": action, "peer": request.client.host}, ensure_ascii=False) + "\n")
+            auth(request, write=True, initial=initial)
+            return operation(*args)
 
     @app.post("/api/admin/login")
     async def login(body: Login, request: Request, response: Response):
@@ -208,16 +249,16 @@ def create_admin_app(store, jobs, model, credentials, publication, web_info, ext
     @app.post("/api/admin/password")
     async def password(body: PasswordChange, request: Request, response: Response):
         auth(request, write=True, initial=True)
-        token, session = await asyncio.to_thread(credentials.change, body.current_password, body.new_password)
+        token, session = await asyncio.to_thread(mutate, request, credentials.change, body.current_password, body.new_password, initial=True)
         audit("change_password", request)
         return signed_in(response, token, session)
 
     @app.post("/api/admin/logout")
     async def logout(request: Request, response: Response):
-        auth(request, write=True, initial=True)
         with credentials.lock:
-            credentials.sessions.pop(hashlib.sha256(request.cookies[COOKIE].encode()).hexdigest(), None)
-        response.delete_cookie(COOKIE, path="/")
+            auth(request, write=True, initial=True)
+            credentials.sessions.pop(hashlib.sha256(request.cookies[credentials.cookie_name].encode()).hexdigest(), None)
+        response.delete_cookie(credentials.cookie_name, path="/")
         return {"logged_out": True}
 
     @app.get("/api/admin/status")
@@ -240,7 +281,7 @@ def create_admin_app(store, jobs, model, credentials, publication, web_info, ext
     async def scan(body: Scan, request: Request):
         auth(request, write=True)
         try:
-            job = jobs.start(body.path)
+            job = await asyncio.to_thread(mutate, request, jobs.start, body.path)
             audit("scan", request)
             return {"job": job}
         except (ValueError, RuntimeError) as exc:
@@ -249,14 +290,16 @@ def create_admin_app(store, jobs, model, credentials, publication, web_info, ext
     @app.post("/api/admin/cancel")
     async def cancel(request: Request):
         auth(request, write=True)
-        job = jobs.status()
-        return {"job": jobs.cancel(job["id"]) if job else None}
+        def cancel_current():
+            job = jobs.status()
+            return jobs.cancel(job["id"]) if job else None
+        return {"job": await asyncio.to_thread(mutate, request, cancel_current)}
 
     @app.post("/api/admin/publication")
     async def publish(body: Publish, request: Request):
         auth(request, write=True)
         try:
-            result = await asyncio.to_thread(publication.set, body.grants)
+            result = await asyncio.to_thread(mutate, request, publication.set, body.grants)
             audit("publish_access", request)
             return result
         except (ValueError, KeyError) as exc:

@@ -8,21 +8,23 @@ async function api(route, data) {
   return body;
 }
 function showLogin() { session = null; clearInterval(poll); $('#login-panel').hidden = false; $('#dashboard').hidden = true; $('#password-panel').hidden = true; $('#account').hidden = true; $('#libraries').replaceChildren(); }
-function showPassword() { $('#dashboard').hidden = true; $('#password-panel').hidden = false; $('#cancel-password').hidden = session.must_change; $('#password-help').textContent = session.must_change ? '首次登录需要修改默认密码，完成后才能开放资料。新密码至少 12 个字符。' : '修改密码会使其他登录会话退出。新密码至少 12 个字符。'; $('#current-password').focus(); }
+function showPassword() { clearInterval(poll); $('#dashboard').hidden = true; $('#password-panel').hidden = false; $('#cancel-password').hidden = session.must_change; $('#password-help').textContent = session.must_change ? '首次登录需要修改默认密码，完成后才能开放资料。新密码至少 12 个字符。' : '修改密码会使其他登录会话退出。新密码至少 12 个字符。'; $('#current-password').focus(); }
 async function signedIn(value) { session = value; $('#login-panel').hidden = true; $('#account').hidden = false; if (value.must_change) showPassword(); else { $('#password-panel').hidden = true; $('#dashboard').hidden = false; await refresh(); clearInterval(poll); poll = setInterval(updateStatus, 2000); } }
 function el(tag, text, cls) { const node = document.createElement(tag); node.textContent = text; if (cls) node.className = cls; return node; }
 async function refresh() {
   const data = await api('libraries'); libraries = data.libraries; $('#libraries').replaceChildren();
-  let count = 0;
+  const count = data.publication.grants.reduce((total, grant) => total + grant.document_ids.length, 0);
   for (const library of libraries) {
     const group = el('section', '', 'library-group');
     group.append(el('h3', library.path));
-    const selected = new Set(data.publication.grants.find(g => g.library_id === library.id)?.document_ids || []);
+    const grant = data.publication.grants.find(g => g.library_id === library.id);
+    const selected = new Set(grant?.document_ids || []);
+    if (grant && grant.generation !== library.generation) group.append(el('p', '此目录已重新扫描。查询端仍使用上次开放的版本；保存访问范围后才会开放本次内容。', 'help'));
     if (library.documents.length) {
       const allLabel = el('label', '', 'doc-row'); const all = document.createElement('input'); all.type = 'checkbox';
       allLabel.append(all, el('span', '选择此目录的全部已索引文档')); group.append(allLabel);
       for (const doc of library.documents) {
-        const label = el('label', '', 'doc-row'); const check = document.createElement('input'); check.type = 'checkbox'; check.dataset.library = library.id; check.value = doc.id; check.checked = selected.has(doc.id); if (check.checked) count++;
+        const label = el('label', '', 'doc-row'); const check = document.createElement('input'); check.type = 'checkbox'; check.dataset.library = library.id; check.value = doc.id; check.checked = selected.has(doc.id);
         label.append(check, el('span', doc.relative_path)); group.append(label);
       }
       const checks = [...group.querySelectorAll('input[data-library]')];
