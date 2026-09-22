@@ -4,11 +4,11 @@ Electron 桌面窗口 + 独立 CPython 3.13 运行环境 + 原始 NanoJev checkp
 
 ## 使用便携版
 
-完整解压 `JEV-0.5.0-windows-x64-offline.zip`，双击其中的 `JEV-0.5.0-windows-x64-portable.exe`。不要在压缩包内直接运行，也不要只复制 EXE。GitHub Release 上的两个分卷需先按[发布说明](../docs/RELEASING.md)校验合并成 ZIP。
+完整解压对应版本便携包，双击其中的 `JEV-0.6.0-windows-x64-portable.exe`。不要在压缩包内直接运行，也不要只复制 EXE。已发布的历史 0.5.0 分卷仍按对应版本的发布说明使用。
 
 ```text
-JEV-Windows-Portable/
-  JEV-0.5.0-windows-x64-portable.exe
+JEV-Windows-Portable-0.6.0/
+  JEV-0.6.0-windows-x64-portable.exe
   JEV-models/       原始 NanoJev 与 OCR 权重，必须与 EXE 一起保留
   JEV-runtime/     完整独立 Python 与推理环境，必须与 EXE 一起保留
   JEV/             默认文档目录，附带入门示例
@@ -21,6 +21,8 @@ JEV-Windows-Portable/
 启动时仅将 Electron 桌面外壳展开到 Windows 临时目录，Python 直接使用同级 JEV-runtime，不重复展开大型推理依赖。首次检索会加载约 2.4 GB 的原始 NanoJev 权重，因此会比后续检索慢。建议至少 16 GB 内存，并留出至少 10 GB 可用磁盘空间（包含分卷、合并 ZIP、解压目录与启动临时文件，文档库另计）。
 
 默认扫描 EXE 同级的 `JEV` 文件夹。使用页面“切换目录”或菜单“文件 → 选择文档目录”选择其他目录。该选择和检索参数会保存，下一次启动继续使用。文档库与网页版独立，不会把本机已有私人文档打进交付包。
+
+设置中的“浏览器查询端”默认关闭，启用后默认使用 18766 端口。可选择仅本机或局域网访问；Web 访问者只能查找当前已扫描资料的原文段落，不能查看或修改文档目录。设置会保存，关闭桌面程序时附属 Web 服务同步关闭。详见 [Web 查询说明](../docs/WEB_SHARING.md)。
 
 窗口关闭即退出：Electron 请求后端结束，超时只终止它自己启动的 Python 进程。父进程意外消失时，Python 监视器也会结束后端，避免模型留在内存。重复启动会聚焦同一便携目录的已有窗口。
 
