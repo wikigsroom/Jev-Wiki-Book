@@ -164,6 +164,8 @@ class KnowledgeStore:
                                     and not (Path(current) / d).is_symlink())
             for name in sorted(files):
                 path = Path(current) / name
+                if path.resolve() in {self.storage.parent / name for name in ("admin.json", "publication.json", "audit.jsonl", ".server.lock")}:
+                    continue
                 if path.suffix.lower() in SUPPORTED and not path.is_symlink() and not name.startswith("~$"):
                     yield path
 

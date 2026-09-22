@@ -1,0 +1,50 @@
+name: Native CLI binaries
+on:
+  workflow_dispatch:
+  push:
+    branches: [cli]
+    paths: ['server.py', 'jev_core/**', 'web_ui/**', 'packaging/**', 'requirements*.txt', '.github/workflows/cli-binaries.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install CPU dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch==2.14.0 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements-dev.txt -r packaging/requirements-build.txt
+          python -m pip install rapidocr==3.9.2 onnxruntime==1.24.3
+      - name: Regression tests
+        run: python -X utf8 -m pytest tests -q
+      - name: Build native executable
+        run: python -X utf8 packaging/build_server.py
+      - name: Download fixed local models for verification
+        run: |
+          python -X utf8 download_nanojev.py
+          python -X utf8 setup_ocr.py
+      - name: Verify native binary with real CPU inference
+        shell: bash
+        run: |
+          EXE=server_build/dist/JEV-server/JEV-server
+          if [ "$RUNNER_OS" = Windows ]; then EXE="$EXE.exe"; fi
+          "$EXE" --models-dir models --check
+          python -X utf8 packaging/smoke_binary.py --binary "$EXE" --models models --output server_build/native-verification.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JEV-cli-0.6.0-${{ matrix.os }}-x64
+          path: |
+            server_build/dist/JEV-server/
+            server_build/native-verification.json
+          compression-level: 3
+          retention-days: 30
