@@ -95,3 +95,21 @@ def test_port_conflict_and_corrupt_settings_fail_closed(tmp_path):
         with pytest.raises(RuntimeError):
             sharing.update(SharingSettings(enabled=True, port=occupied.getsockname()[1]))
     assert not sharing.status()["running"]
+
+
+def test_settings_write_failure_closes_new_listener(tmp_path, monkeypatch):
+    import pytest
+    import socket
+    store = library(tmp_path)
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    def fail(*_):
+        raise OSError("read only")
+    monkeypatch.setattr("jev_core.web.atomic_json", fail)
+    sharing = DesktopSharing(store, Model(), tmp_path / "sharing.json")
+    with pytest.raises(RuntimeError):
+        sharing.update(SharingSettings(enabled=True, port=port))
+    assert not sharing.status()["running"] and not sharing.status()["enabled"]
+    with socket.socket() as probe:
+        assert probe.connect_ex(("127.0.0.1", port)) != 0
