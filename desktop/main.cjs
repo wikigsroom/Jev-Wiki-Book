@@ -134,7 +134,7 @@ async function startBackend() {
     });
     let healthy = false, configuration;
     for (let i = 0; i < 80 && !quitting && backend.exitCode === null; i++) {
-      try { const response = await request('/api/health'); const body = await response.json(); if (response.ok && body.service === 'JEV' && body.version === '0.5.0') { healthy = true; configuration = body; break; } } catch { /* Wait until ASGI startup is complete. */ }
+      try { const response = await request('/api/health'); const body = await response.json(); if (response.ok && body.service === 'JEV' && body.version === app.getVersion()) { healthy = true; configuration = body; break; } } catch { /* Wait until ASGI startup is complete. */ }
       await delay(200);
     }
     if (quitting) return;

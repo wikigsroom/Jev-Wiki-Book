@@ -4,6 +4,7 @@ import asyncio
 import hmac
 import os
 import re
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -20,13 +21,24 @@ from jev_core.nanojev import LocalNanoJev
 from jev_core.parsing import DocumentParser, LocalOCR
 from jev_core.retrieval import RagService
 from jev_core.storage import IndexJobs, KnowledgeStore
+from jev_core.web import DesktopSharing, SharingSettings, VERSION
 
 ocr = LocalOCR(STORAGE_DIR / "ocr")
 store = KnowledgeStore(STORAGE_DIR, DEFAULT_ROOT, DocumentParser(ocr))
 local_jev = LocalNanoJev()
 rag_service = RagService(store, local_jev)
 jobs = IndexJobs(store)
-app = FastAPI(title="JEV · 本地文档检索", version="0.5.0")
+sharing = DesktopSharing(store, local_jev, STORAGE_DIR / "web-sharing.json")
+
+
+@asynccontextmanager
+async def lifespan(app):
+    await asyncio.to_thread(sharing.start_saved)
+    yield
+    await asyncio.to_thread(sharing.close)
+
+
+app = FastAPI(title="JEV · 本地文档检索", version=VERSION, lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
 dist = BASE_DIR / "frontend" / "dist"
 if (dist / "assets").is_dir():
@@ -80,9 +92,22 @@ async def index():
 @app.get("/api/health")
 @app.get("/api/config")
 async def config():
-    return {"service": "JEV", "version": "0.5.0", **store.status(), "local_jev": local_jev.status(),
+    return {"service": "JEV", "version": VERSION, **store.status(), "local_jev": local_jev.status(),
             "ocr": ocr.status(), "libraries": store.libraries(), "job": jobs.status(),
             "answer_mode": "original-text-only", "retrieval_top_k": 12}
+
+
+@app.get("/api/sharing")
+async def sharing_status():
+    return sharing.status()
+
+
+@app.post("/api/sharing")
+async def sharing_update(body: SharingSettings):
+    try:
+        return await asyncio.to_thread(sharing.update, body)
+    except RuntimeError as exc:
+        raise HTTPException(409, str(exc)) from exc
 
 
 @app.get("/api/source-root")

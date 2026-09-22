@@ -154,7 +154,7 @@ class KnowledgeStore:
         return parsed
 
     def _files(self, root: Path):
-        generic = {".git", ".venv", "venv", "__pycache__", "node_modules", ".runtime", ".skills"}
+        generic = {".git", ".venv", "venv", "__pycache__", "node_modules", ".runtime", ".skills", "worktrees", "web_ui", "server_data", "build", "dist"}
         private = {p.resolve() for p in (self.storage, MODELS_DIR, BASE_DIR / "frontend", BASE_DIR / "static", BASE_DIR / "tests", BASE_DIR / "evals", BASE_DIR / "desktop", BASE_DIR / "release")}
         def on_error(exc):
             raise OSError(f"无法扫描目录：{exc}") from exc

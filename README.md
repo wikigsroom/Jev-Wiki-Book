@@ -6,6 +6,8 @@
 
 ## Windows 便携版
 
+当前源码为 0.6.0：设置中可以启用独立 Web 查询端（默认端口 18766），浏览器只能查询桌面端已建立的当前文档库。[Web 共享说明](docs/WEB_SHARING.md)。已发布安装包版本以 Releases 页面为准。
+
 发行下载入口：[GitHub Releases](https://github.com/wikigsroom/Jev-Wiki-Book/releases)。以下为 `v0.5.0` 的安装方式。建议 Windows 11 x64、16 GB 内存和至少 10 GB 可用磁盘空间（包含分卷、合并 ZIP、解压目录与启动临时文件，文档库另计）。当前在 Windows 11 实测，Windows 10 尚未独立验证；EXE 未进行代码签名。
 
 GitHub 单文件大小限制使完整离线 ZIP 需要拆成两份。首次使用请下载：

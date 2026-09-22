@@ -31,3 +31,6 @@ evals/questions.json
 evals/results.json
 evals/initial-results.json
 evals/private/
+worktrees/
+server_data/
+server_build/

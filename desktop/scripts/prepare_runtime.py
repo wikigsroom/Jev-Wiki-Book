@@ -124,7 +124,7 @@ def main():
             copy(source, target_packages / relative)
     for source in [PROJECT / "app.py", DESKTOP / "backend_entry.py"]:
         copy(source, BACKEND / source.name)
-    for folder in ["jev_core", "static", "frontend/dist"]:
+    for folder in ["jev_core", "static", "web_ui", "frontend/dist"]:
         for source in (PROJECT / folder).rglob("*"):
             if source.is_file() and "__pycache__" not in source.parts:
                 copy(source, BACKEND / source.relative_to(PROJECT))

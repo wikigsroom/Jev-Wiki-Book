@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -12,9 +13,9 @@ import zipfile
 
 from prepare_runtime import BACKEND, DESKTOP, PROJECT, WEIGHT_SHA256, copy, sha256, write_json
 
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 RELEASE = PROJECT / "release"
-BUNDLE = RELEASE / "JEV-Windows-Portable"
+BUNDLE = RELEASE / f"JEV-Windows-Portable-{VERSION}"
 
 
 def download_license(url, target):
@@ -55,7 +56,13 @@ def main():
     if sha256(model_files[0]) != WEIGHT_SHA256:
         raise RuntimeError("NanoJev weight SHA256 does not match the reviewed checkpoint")
     for source in model_files:
-        copy(source, BUNDLE / "JEV-models" / source.relative_to(PROJECT / "models"))
+        target = BUNDLE / "JEV-models" / source.relative_to(PROJECT / "models")
+        if not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                os.link(source, target)
+            except OSError:
+                copy(source, target)
     for source in BACKEND.rglob("*"):
         if source.is_file() and "__pycache__" not in source.parts and source.suffix not in {".pyc", ".pyo"}:
             copy(source, BUNDLE / "JEV-runtime" / source.relative_to(BACKEND))
@@ -70,7 +77,7 @@ def main():
     ]]
     sources += [PROJECT / "frontend" / name for name in ["package.json", "package-lock.json", "vite.config.js", "index.html"]]
     sources += [DESKTOP / name for name in ["package.json", "package-lock.json", "main.cjs", "preload.cjs", "lifecycle.cjs", "backend_entry.py", "README.md", "VERIFICATION.md", "requirements-runtime.lock.txt"]]
-    for folder in ["jev_core", "static", "tests", "docs", "frontend/src", "desktop/renderer", "desktop/scripts", "desktop/tests", "desktop/assets"]:
+    for folder in ["jev_core", "static", "web_ui", "tests", "docs", "frontend/src", "desktop/renderer", "desktop/scripts", "desktop/tests", "desktop/assets"]:
         sources.extend(path for path in (PROJECT / folder).rglob("*") if path.is_file() and "__pycache__" not in path.parts)
     for source in sources:
         copy(source, BUNDLE / "SOURCE" / source.relative_to(PROJECT))

@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JEV · 资料查询</title><link rel="stylesheet" href="/ui/site.css"><script src="/ui/query.js" defer></script></head>
+<body><header class="mast"><a class="brand" href="/">JEV<span>资料查询</span></a><span class="status" id="availability">正在连接资料服务</span></header>
+<main class="query-main"><div class="intro"><span class="eyebrow">从资料中找到依据</span><h1>你的问题，<br>原文来回答。</h1><p>输入问题，查找已开放资料中的相关段落。</p></div>
+<form id="query-form"><label for="question">你想了解什么？</label><textarea id="question" maxlength="2000" rows="3" placeholder="输入完整问题，或资料中的关键词" required></textarea><div class="form-foot"><span>结果保留原文与出处</span><button type="submit" id="search">查找原文 <span aria-hidden="true">→</span></button></div></form>
+<div id="message" role="status" aria-live="polite"></div><section id="results" aria-label="检索结果"></section>
+<footer>JEV · 每一条结果，都有出处。<span>请结合原文语境核对信息。</span></footer></main></body></html>
