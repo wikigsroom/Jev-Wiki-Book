@@ -218,7 +218,7 @@ class DesktopSharing:
 
     def update(self, settings, persist=True):
         with self.lock:
-            if settings == self.settings and (self.server is not None) == settings.enabled:
+            if not self.error and settings == self.settings and (self.server is not None) == settings.enabled:
                 return self.status()
             old_server = self.server
             # Revoke in-flight results before replacing the owned listener.

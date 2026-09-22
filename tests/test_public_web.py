@@ -95,6 +95,9 @@ def test_port_conflict_and_corrupt_settings_fail_closed(tmp_path):
         with pytest.raises(RuntimeError):
             sharing.update(SharingSettings(enabled=True, port=occupied.getsockname()[1]))
     assert not sharing.status()["running"]
+    sharing.update(SharingSettings(enabled=False))
+    restored = DesktopSharing(store, Model(), file)
+    assert not restored.settings.enabled and restored.error is None
 
 
 def test_settings_write_failure_closes_new_listener(tmp_path, monkeypatch):
