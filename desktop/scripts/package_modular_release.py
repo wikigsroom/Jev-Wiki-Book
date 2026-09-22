@@ -128,6 +128,7 @@ def main():
     manifest = {"version": VERSION, "archive": f"JEV-models-{VERSION}.zip", "bytes": writer.position,
                 "sha256": writer.total_hash.hexdigest(), "parts": writer.records, "payload_verified": True}
     (RELEASE / f"JEV-models-{VERSION}-downloads.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    (RELEASE / f"JEV-models-{VERSION}.zip.sha256").write_text(f"{manifest['sha256']}  {manifest['archive']}\n", encoding="ascii")
     print(json.dumps(manifest), flush=True)
 
 
