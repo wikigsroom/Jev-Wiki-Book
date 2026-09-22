@@ -1,6 +1,6 @@
 # JEV · Jev Wiki Book
 
-完全在本机运行的文档证据检索工具：选择文件夹，输入问题，返回相关原文段落，并在阅读器中核对来源。提供 Windows Electron 便携版和可自行运行的 Web 界面。
+完全在本机运行的文档证据检索工具：选择文件夹，输入问题，返回相关原文段落，并在阅读器中核对来源。提供带可选 Web 查询端的 Windows Electron 便携版，以及独立的 CLI 企业内网服务。
 
 使用社区开源 [NanoJev](https://github.com/TianyuCodings/NanoJev) / [C-Tianyu/NanoJev](https://huggingface.co/C-Tianyu/NanoJev)，**不是 TypeSafe 官方 Jev 私有权重**。运行时不需要网络、Claude、TypeSafe API 或任何 API Key；不生成摘要或改写回答。
 
@@ -42,7 +42,9 @@ JEV-Windows-Portable-0.6.0/
 
 公开 NanoJev checkpoint 训练于游戏决策，尚未证明其优于 BM25 或适用于通用文档重排。本实现保留词法排序主导；概率不代表事实正确率。同义问法、复杂排版、OCR 和跨文档冲突都需要核对原文。当前没有聊天生成、自动摘要、向量 embedding 或 Wiki 自动写作功能。
 
-## 从源码运行
+## 本机开发工作台
+
+以下 `app.py` 入口是带目录管理的本机开发工作台。面向查询用户的入口为 Electron 启用的 18766 服务，或 cli 分支独立查询端；部署说明见上文。开发工作台只在本机使用。
 
 以下命令使用 Windows 原生 Python 3.13 和 Node.js 22；无需 Docker、WSL 或虚拟机。首次安装依赖、下载模型需要联网，之后在本机运行。
 
