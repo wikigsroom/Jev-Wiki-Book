@@ -8,14 +8,17 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import urllib.request
 import zipfile
 
 from prepare_runtime import BACKEND, DESKTOP, PROJECT, WEIGHT_SHA256, copy, sha256, write_json
 
-VERSION = "0.6.1"
+sys.path.insert(0, str(PROJECT))
+from jev_core.release_info import VERSION, DESKTOP_PROGRAM, DESKTOP_STEM, DOWNLOADS_MANIFEST, SERVER_PROGRAM, server_stem
+
 RELEASE = PROJECT / "release"
-BUNDLE = RELEASE / f"JEV-Windows-Portable-{VERSION}"
+BUNDLE = RELEASE / DESKTOP_STEM
 
 
 def download_license(url, target):
@@ -44,8 +47,12 @@ def main():
     parser.add_argument("--assets-only", action="store_true")
     parser.add_argument("--reuse-runtime", type=Path, help="Hardlink identical runtime files from an existing release")
     args = parser.parse_args()
+    package = json.loads((DESKTOP / "package.json").read_text(encoding="utf-8"))
+    if (package["version"] != VERSION or package["build"]["productName"] != DESKTOP_PROGRAM
+            or package["build"]["portable"]["artifactName"].replace("${version}", VERSION) != DESKTOP_STEM + ".exe"):
+        raise RuntimeError("Desktop package name/version differs from the release manifest")
     BUNDLE.mkdir(parents=True, exist_ok=True)
-    exe_name = f"JEV-{VERSION}-windows-x64-portable.exe"
+    exe_name = DESKTOP_STEM + ".exe"
     exe = DESKTOP / "dist" / exe_name
     if not args.assets_only and not exe.is_file():
         raise RuntimeError("Build the portable EXE first")
@@ -123,7 +130,7 @@ def main():
     files.append(BUNDLE / "SHA256SUMS.txt")
     print(json.dumps({"bundle": str(BUNDLE), "files": len(files), "bytes": sum(file.stat().st_size for file in files)}, ensure_ascii=False), flush=True)
     if not args.no_archive:
-        archive = RELEASE / f"JEV-{VERSION}-windows-x64-offline.zip"
+        archive = RELEASE / f"{DESKTOP_STEM}-Offline.zip"
         print("Creating ZIP64 offline package…", flush=True)
         with zipfile.ZipFile(archive.with_suffix(".partial"), "w", compression=zipfile.ZIP_DEFLATED, compresslevel=3, allowZip64=True) as zf:
             for file in files:

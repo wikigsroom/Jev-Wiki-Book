@@ -7,7 +7,7 @@ const { spawn } = require('node:child_process');
 const { portablePaths, sameOrigin, isLauncher, readiness } = require('./lifecycle.cjs');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'jev-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
-app.setName('JEV');
+app.setName('JevDocumentSearchDesktop');
 app.commandLine.appendSwitch('disable-background-networking');
 const paths = portablePaths({ executable: process.execPath, portableDir: process.env.PORTABLE_EXECUTABLE_DIR, packaged: app.isPackaged, projectDir: __dirname });
 let setupError;

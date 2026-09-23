@@ -17,8 +17,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .common import BASE_DIR, atomic_json
 from .retrieval import RagService
+from .release_info import VERSION
 
-VERSION = "0.6.1"
 UI_DIR = BASE_DIR / "web_ui"
 
 

@@ -6,11 +6,11 @@ import json
 from pathlib import Path, PurePosixPath
 import zipfile
 
-from release_portable import BUNDLE, RELEASE, VERSION, WEIGHT_SHA256
+from release_portable import BUNDLE, RELEASE, VERSION, WEIGHT_SHA256, DESKTOP_STEM
 
 
 def main():
-    archive = RELEASE / f"JEV-{VERSION}-windows-x64-offline.zip"
+    archive = RELEASE / f"{DESKTOP_STEM}-Offline.zip"
     prefix = BUNDLE.name + "/"
     with zipfile.ZipFile(archive) as zf:
         names = zf.namelist()
@@ -30,7 +30,7 @@ def main():
             raise RuntimeError("Archive and checksum manifest contents differ")
         if entries[prefix + "JEV-models/nanojev/best.safetensors"] != WEIGHT_SHA256:
             raise RuntimeError("Original NanoJev checkpoint hash mismatch")
-        required = [f"JEV-{VERSION}-windows-x64-portable.exe", "JEV-runtime/python/python.exe", "JEV-runtime/app.py", "JEV/开始使用.md", "使用说明.md", "验证记录.md"]
+        required = [DESKTOP_STEM + ".exe", "JEV-runtime/python/python.exe", "JEV-runtime/app.py", "JEV/开始使用.md", "使用说明.md", "验证记录.md"]
         if any(prefix + name not in entries for name in required):
             raise RuntimeError("Missing release component")
         total = 0

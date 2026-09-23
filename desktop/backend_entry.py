@@ -61,7 +61,7 @@ def monitor_parent(parent_pid):
 def main():
     sys.dont_write_bytecode = True
     if not os.getenv("JEV_DESKTOP_TOKEN"):
-        raise RuntimeError("Launch the desktop backend through JEV.exe")
+        raise RuntimeError("Launch the desktop backend through JevDocumentSearchDesktop.exe")
     enforce_offline()
     threading.Thread(target=monitor_parent, args=(int(os.getenv("JEV_PARENT_PID", "0")),), daemon=True).start()
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import shutil
 
-from release_portable import BUNDLE, DESKTOP, RELEASE, VERSION
+from release_portable import BUNDLE, DESKTOP, RELEASE, VERSION, DESKTOP_STEM, DOWNLOADS_MANIFEST
 
 PART_SIZE = 1536 * 1024 * 1024
 
@@ -63,9 +63,9 @@ def write_support_files(output, metadata):
     (output / "Merge-JEV.cmd").write_bytes(merge_command(metadata))
     for source in [DESKTOP / "scripts/Merge-JEV.ps1", RELEASE / "verification-result.json", RELEASE / (archive["name"] + ".sha256")]:
         shutil.copy2(source, output / source.name)
-    names = [f"JEV-{VERSION}-windows-x64-portable.exe", "Merge-JEV.cmd", "Merge-JEV.ps1", "verification-result.json", archive["name"] + ".sha256"]
+    names = [DESKTOP_STEM + ".exe", "Merge-JEV.cmd", "Merge-JEV.ps1", "verification-result.json", archive["name"] + ".sha256"]
     metadata["assets"] = parts + [fingerprint(output / name) for name in names]
-    (output / f"JEV-{VERSION}-downloads.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (output / DOWNLOADS_MANIFEST).write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def main():
@@ -74,8 +74,8 @@ def main():
     args = parser.parse_args()
     output = RELEASE / f"github-v{VERSION}"
     output.mkdir(parents=True, exist_ok=True)
-    archive = RELEASE / f"JEV-{VERSION}-windows-x64-offline.zip"
-    manifest = output / f"JEV-{VERSION}-downloads.json"
+    archive = RELEASE / f"{DESKTOP_STEM}-Offline.zip"
+    manifest = output / DOWNLOADS_MANIFEST
     if manifest.exists():
         previous = json.loads(manifest.read_text(encoding="utf-8"))
         files = [output / part["name"] for part in previous["parts"]]
@@ -126,7 +126,7 @@ def main():
         with second.open("xb") as target:
             shutil.copyfileobj(source, target, 4 * 1024 * 1024)
     parts = [{"name": first.name, "size": PART_SIZE, "sha256": first_digest.hexdigest()}, fingerprint(second)]
-    exe = output / f"JEV-{VERSION}-windows-x64-portable.exe"
+    exe = output / (DESKTOP_STEM + ".exe")
     if not exe.exists():
         try:
             os.link(BUNDLE / exe.name, exe)

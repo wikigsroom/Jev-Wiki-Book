@@ -1,5 +1,5 @@
 param(
-    [string]$Manifest = 'JEV-0.6.0-downloads.json',
+    [string]$Manifest = 'JevWikiBookDownloads-0.6.2.json',
     [string]$OutputDirectory = $PSScriptRoot,
     [switch]$VerifyOnly
 )

@@ -5,7 +5,7 @@ const { portablePaths, sameOrigin, isLauncher, readiness } = require('../lifecyc
 
 test('portable data and model paths follow the outer executable, never its extraction directory', () => {
   const root = path.resolve('build', '中文 便携目录');
-  const result = portablePaths({ executable: path.resolve('build', 'temporary', 'JEV.exe'), portableDir: root, packaged: true });
+  const result = portablePaths({ executable: path.resolve('build', 'temporary', 'JevDocumentSearchDesktop.exe'), portableDir: root, packaged: true });
   assert.equal(result.data, path.join(root, 'JEV-data'));
   assert.equal(result.source, path.join(root, 'JEV'));
   assert.equal(result.models, path.join(root, 'JEV-models'));

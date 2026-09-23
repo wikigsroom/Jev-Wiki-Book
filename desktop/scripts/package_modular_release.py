@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import zipfile
 
-from release_portable import BUNDLE, RELEASE, VERSION
+from release_portable import BUNDLE, RELEASE, VERSION, DESKTOP_STEM
 from prepare_runtime import sha256
 
 
@@ -106,7 +106,7 @@ def main():
     for line in (BUNDLE / "SHA256SUMS.txt").read_text(encoding="utf-8").splitlines():
         checksum, name = line.split("  ", 1)
         payload[name] = checksum
-    desktop = RELEASE / f"JEV-{VERSION}-windows-x64-app.zip"
+    desktop = RELEASE / f"{DESKTOP_STEM}.zip"
     app_checksums = {name: value for name, value in payload.items() if not name.startswith("JEV-models/")}
     app_checksums["SHA256SUMS.txt"] = sha256(BUNDLE / "SHA256SUMS.txt")
     with zipfile.ZipFile(desktop, "x", zipfile.ZIP_DEFLATED, compresslevel=3) as output:

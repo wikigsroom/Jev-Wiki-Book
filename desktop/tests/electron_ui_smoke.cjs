@@ -22,7 +22,8 @@ delete env.ELECTRON_RUN_AS_NODE;
 let electron, browser, page;
 const errors = [];
 async function launch() {
-  electron = await _electron.launch({ executablePath: path.join(desktop, 'dist', 'win-unpacked', 'JEV.exe'), env, timeout: 120000 });
+  const executableName = require('../package.json').build.productName + '.exe';
+  electron = await _electron.launch({ executablePath: path.join(desktop, 'dist', 'win-unpacked', executableName), env, timeout: 120000 });
   page = await electron.firstWindow();
   page.on('pageerror', error => errors.push(String(error)));
   await page.waitForURL(/^http:\/\/127\.0\.0\.1:/, { timeout: 120000 });

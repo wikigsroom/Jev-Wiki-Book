@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import subprocess
 
-from release_portable import PROJECT, RELEASE, VERSION
+from release_portable import PROJECT, RELEASE, VERSION, DOWNLOADS_MANIFEST
 
 
 def find_release(api, tag):
@@ -33,7 +33,7 @@ def main():
     args = parser.parse_args()
     tag = "v" + VERSION
     folder = RELEASE / ("github-" + tag)
-    manifest_path = folder / f"JEV-{VERSION}-downloads.json"
+    manifest_path = folder / DOWNLOADS_MANIFEST
     metadata = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     def gh(*command, optional=False):
@@ -76,7 +76,7 @@ def main():
         return
     release = find_release(api, tag)
     notes = str(PROJECT / "docs/releases" / (tag + ".md"))
-    title = args.title or f"JEV {VERSION} · Windows desktop and Windows/Linux CLI"
+    title = args.title or f"JEV {VERSION} · Document Search Desktop / Admin Query Server"
     if release is None:
         gh("release", "create", tag, "--repo", args.repo, "--verify-tag", "--draft", "--title", title, "--notes-file", notes)
         release = find_release(api, tag)

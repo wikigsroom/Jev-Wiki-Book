@@ -1,14 +1,14 @@
-# JEV Windows 桌面版
+# JevDocumentSearchDesktop · Windows 文档检索桌面程序
 
 Electron 桌面窗口 + 独立 CPython 3.13 运行环境 + 原始 NanoJev checkpoint + 本地 RapidOCR。运行时不需要 Python、Node、API Key、管理员权限或网络。当前目标是 Windows 10/11 x64，CPU FP32 推理。
 
 ## 使用便携版
 
-完整解压对应版本便携包，双击其中的 `JEV-0.6.1-windows-x64-portable.exe`。不要在压缩包内直接运行，也不要只复制 EXE。已发布的历史 0.5.0 分卷仍按对应版本的发布说明使用。
+完整解压 `JevDocumentSearchDesktopWindowsX64Portable-0.6.2.zip`，放入已有的 `JEV-models`，双击其中的 `JevDocumentSearchDesktopWindowsX64Portable-0.6.2.exe`。不要在压缩包内直接运行，也不要只复制 EXE。[首次安装和模型下载](../docs/DISTRIBUTION_0_6_2.md)。历史版本按对应版本的发布说明使用。
 
 ```text
-JEV-Windows-Portable-0.6.1/
-  JEV-0.6.1-windows-x64-portable.exe
+JevDocumentSearchDesktopWindowsX64Portable-0.6.2/
+  JevDocumentSearchDesktopWindowsX64Portable-0.6.2.exe
   JEV-models/       原始 NanoJev 与 OCR 权重，必须与 EXE 一起保留
   JEV-runtime/     完整独立 Python 与推理环境，必须与 EXE 一起保留
   JEV/             默认文档目录，附带入门示例
@@ -26,7 +26,7 @@ JEV-Windows-Portable-0.6.1/
 
 窗口关闭即退出：Electron 请求后端结束，超时只终止它自己启动的 Python 进程。父进程意外消失时，Python 监视器也会结束后端，避免模型留在内存。重复启动会聚焦同一便携目录的已有窗口。
 
-更新时替换 EXE 和版本对应的 `JEV-runtime`，保留 `JEV-models`、`JEV` 和 `JEV-data`。换电脑时复制整个目录。此前文档目录的绝对路径如果在新位置不存在，需要重新选择默认 JEV 文件夹或外部目录；旧索引和历史证据不会自动删除。
+更新前退出旧程序并备份 `JEV-data`，替换 EXE 和版本对应的整个 `JEV-runtime`，保留 `JEV-models`、`JEV` 和 `JEV-data`。旧 EXE 应移到备份目录，避免误启旧版本。0.6.2 的大驼峰程序名不改变数据目录或设置格式；内部桌面进程名为 `JevDocumentSearchDesktop.exe`。换电脑时复制整个目录。此前文档目录的绝对路径如果在新位置不存在，需要重新选择默认 JEV 文件夹或外部目录；旧索引和历史证据不会自动删除。
 
 当前交付未使用代码签名证书。Windows 在下载到其他电脑后可能显示未知发布者提示；可用 SHA256SUMS.txt 校验文件。该包没有安装、自动更新或联网激活步骤。
 

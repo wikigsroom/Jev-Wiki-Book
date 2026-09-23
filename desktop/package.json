@@ -1,6 +1,6 @@
 {
   "name": "jev-desktop",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "JEV 本地文档检索桌面版",
   "author": "JEV project",
   "private": true,
@@ -18,7 +18,7 @@
   },
   "build": {
     "appId": "local.jev.desktop",
-    "productName": "JEV",
+    "productName": "JevDocumentSearchDesktop",
     "copyright": "JEV project; third-party components retain their respective licenses",
     "directories": {
       "output": "dist",
@@ -50,7 +50,7 @@
       "requestedExecutionLevel": "asInvoker"
     },
     "portable": {
-      "artifactName": "JEV-${version}-windows-x64-portable.exe",
+      "artifactName": "JevDocumentSearchDesktopWindowsX64Portable-${version}.exe",
       "requestExecutionLevel": "user",
       "unpackDirName": false,
       "splashImage": "assets/splash.bmp"

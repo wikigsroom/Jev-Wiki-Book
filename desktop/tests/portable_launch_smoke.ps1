@@ -2,9 +2,11 @@ param([Parameter(Mandatory=$true)][string]$Bundle)
 $ErrorActionPreference = 'Stop'
 $bundlePath = (Resolve-Path -LiteralPath $Bundle).Path
 $projectPath = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$package = Get-Content -LiteralPath (Join-Path $projectPath 'desktop/package.json') -Raw | ConvertFrom-Json
+$processName = $package.build.productName
 $testRoot = Join-Path $projectPath ('desktop/build/portable-smoke-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $testRoot | Out-Null
-$exe = Get-ChildItem -LiteralPath $bundlePath -Filter '*portable.exe' -File
+$exe = Get-ChildItem -LiteralPath $bundlePath -Filter ($package.build.portable.artifactName.Replace('${version}', $package.version)) -File
 if (@($exe).Count -ne 1) { throw 'Expected exactly one portable executable' }
 New-Item -ItemType HardLink -Path (Join-Path $testRoot $exe.Name) -Target $exe.FullName | Out-Null
 foreach ($name in @('JEV-runtime', 'JEV-models')) {
@@ -22,7 +24,7 @@ try {
     }
     $session = Get-Content -LiteralPath $sessionPath -Raw | ConvertFrom-Json
     $windowProcess = Get-Process -Id $session.pid
-    if ($windowProcess.ProcessName -ne 'JEV') { throw 'Unexpected desktop process identity' }
+    if ($windowProcess.ProcessName -ne $processName) { throw 'Unexpected desktop process identity' }
     $backend = Get-CimInstance Win32_Process -Filter "ProcessId=$($session.backendPid)"
     if ($backend.ParentProcessId -ne $windowProcess.Id) { throw 'Unexpected backend parent' }
     if (-not $windowProcess.CloseMainWindow()) { throw 'Could not request normal window close' }
@@ -42,7 +44,7 @@ try {
 } finally {
     if ($session) {
         $owned = Get-CimInstance Win32_Process -Filter "ProcessId=$($session.pid)" -ErrorAction SilentlyContinue
-        if ($owned -and $owned.Name -eq 'JEV.exe') { Stop-Process -Id $owned.ProcessId -ErrorAction SilentlyContinue }
+        if ($owned -and $owned.Name -eq ($processName + '.exe')) { Stop-Process -Id $owned.ProcessId -ErrorAction SilentlyContinue }
     }
     if (-not $launcher.HasExited) { Stop-Process -Id $launcher.Id -ErrorAction SilentlyContinue }
 }
