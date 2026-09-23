@@ -2,6 +2,8 @@
 
 下载入口：[v0.6.1](https://github.com/wikigsroom/Jev-Wiki-Book/releases/tag/v0.6.1)。这是程序修订版，继续使用 v0.6.0 的同一套原始 NanoJev FP32 与 OCR 模型。
 
+从选择版本到启动、改密、开放文档的步骤见 [成品使用说明](DELIVERY_0_6_1.md)。
+
 | 程序 | 下载文件 |
 | --- | --- |
 | Windows Electron 便携版 | JEV-0.6.1-windows-x64-app.zip |
