@@ -8,11 +8,14 @@ import sys
 import importlib.metadata
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from jev_core.release_info import SERVER_PROGRAM, VERSION
+
 OUTPUT = ROOT / "server_build"
 
 
 def main():
-    name = "JEV-server"
+    name = SERVER_PROGRAM
     options = [sys.executable, "-m", "PyInstaller", "--noconfirm", "--onedir", "--name", name,
                "--distpath", str(OUTPUT / "dist"), "--workpath", str(OUTPUT / "work"),
                "--specpath", str(OUTPUT), "--add-data", str(ROOT / "web_ui") + ":web_ui",
@@ -49,7 +52,8 @@ def main():
                     target = bundle / "THIRD-PARTY" / distribution.metadata["Name"] / entry
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(source, target)
-    metadata = {"platform": platform.platform(), "machine": platform.machine(), "python": sys.version,
+    metadata = {"program": SERVER_PROGRAM, "version": VERSION,
+                "platform": platform.platform(), "machine": platform.machine(), "python": sys.version,
                 "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                 "models_included": False}
     (bundle / "build-info.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")

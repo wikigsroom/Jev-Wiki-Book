@@ -1,4 +1,4 @@
-name: Native CLI binaries
+name: Native Document Admin Query Server
 on:
   workflow_dispatch:
   push:
@@ -30,7 +30,7 @@ jobs:
       - name: Read application version
         id: version
         shell: bash
-        run: python -c "from jev_core.web import VERSION; import os; open(os.environ['GITHUB_OUTPUT'], 'a').write('value=' + VERSION + '\n')"
+        run: python -c "from jev_core.release_info import VERSION, server_stem; import os, platform; open(os.environ['GITHUB_OUTPUT'], 'a').write('value=' + VERSION + '\nstem=' + server_stem(platform.system()) + '\n')"
       - name: Build native executable
         run: python -X utf8 packaging/build_server.py
       - name: Download fixed local models for verification
@@ -42,8 +42,9 @@ jobs:
       - name: Verify native binary with real CPU inference
         shell: bash
         run: |
-          EXE=server_build/dist/JEV-server/JEV-server
+          EXE=server_build/dist/JevDocumentAdminQueryServer/JevDocumentAdminQueryServer
           if [ "$RUNNER_OS" = Windows ]; then EXE="$EXE.exe"; fi
+          "$EXE" --version
           "$EXE" --models-dir models --check
           python -X utf8 packaging/smoke_binary.py --binary "$EXE" --models models --output server_build/native-verification.json --ui
       - name: Archive verified runtime
@@ -51,7 +52,7 @@ jobs:
       - uses: actions/checkout@v4
         if: runner.os == 'Windows'
         with:
-          ref: 4266b715a2f3b0b807b2adb224e7959239798c05
+          ref: 0a56548fee9376c709804918922345332c192ddc
           path: desktop-validation
       - name: Build and test Electron settings on native Windows
         if: runner.os == 'Windows'
@@ -74,14 +75,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always() && runner.os == 'Windows'
         with:
-          name: JEV-electron-ui-${{ steps.version.outputs.value }}
+          name: JevDocumentSearchDesktopUiVerification-${{ steps.version.outputs.value }}
           path: |
             desktop-validation/desktop/build/ui-verification/
             desktop-validation/desktop/build/ui-smoke-*/JEV-data/logs/
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
-          name: JEV-cli-${{ steps.version.outputs.value }}-${{ matrix.os }}-x64
+          name: ${{ steps.version.outputs.stem }}
           path: |
             server_build/packages/
             server_build/native-verification.json

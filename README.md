@@ -1,10 +1,10 @@
-# JEV CLI · 企业内网资料查询
+# JevDocumentAdminQueryServer · 企业文档管理与查询服务器
 
-`cli` 分支提供 Windows x64 / Linux x86_64 原生服务程序。启动后同时提供管理端和查询端，运行时无需 Electron、Node、GPU、CUDA、Docker 或 WSL。文档解析、OCR 与 NanoJev 推理全部在服务器本机完成，查询只返回原文段落。
+`cli` 分支提供 Windows x64 / Linux x86_64 原生服务程序 `JevDocumentAdminQueryServer`，名称采用大驼峰并明确文档管理与查询职能。启动后同时提供管理端和查询端，运行时无需 Electron、Node、GPU、CUDA、Docker 或 WSL。文档解析、OCR 与 NanoJev 推理全部在服务器本机完成，查询只返回原文段落。
 
 ## 启动
 
-从 [v0.6.1 Release](https://github.com/wikigsroom/Jev-Wiki-Book/releases/tag/v0.6.1) 下载对应平台的程序包，解压后保留 `_internal`。将已有 JEV 离线包的 `JEV-models` 放在程序同级，或通过 `--models-dir` 指定已有模型路径。首次部署另从 [v0.6.0 模型附件](https://github.com/wikigsroom/Jev-Wiki-Book/releases/tag/v0.6.0) 下载共用模型分卷，按 [安装说明](https://github.com/wikigsroom/Jev-Wiki-Book/blob/main/docs/DISTRIBUTION_0_6.md) 合并；v0.6.1 不重复分发模型。运行 `JEV-server.exe`（Windows）或 `./JEV-server`（Linux）。[成品使用说明](https://github.com/wikigsroom/Jev-Wiki-Book/blob/main/docs/DELIVERY_0_6_1.md)。
+从 [v0.6.2 Release](https://github.com/wikigsroom/Jev-Wiki-Book/releases/tag/v0.6.2) 下载 `JevDocumentAdminQueryServerWindowsX64-0.6.2.zip` 或 `JevDocumentAdminQueryServerLinuxX64-0.6.2.tar.gz`，解压后进入 `JevDocumentAdminQueryServer` 目录并保留 `_internal`。将已有 JEV 离线包的 `JEV-models` 放在程序同级，或通过 `--models-dir` 指定已有模型路径。首次部署另从 [v0.6.0 模型附件](https://github.com/wikigsroom/Jev-Wiki-Book/releases/tag/v0.6.0) 下载共用模型分卷，按 [安装说明](https://github.com/wikigsroom/Jev-Wiki-Book/blob/main/docs/DISTRIBUTION_0_6.md) 合并；0.6.2 不重复分发模型。运行 `JevDocumentAdminQueryServer.exe`（Windows）或 `./JevDocumentAdminQueryServer`（Linux）。`--version` 显示程序名称和版本。[程序选择及升级说明](https://github.com/wikigsroom/Jev-Wiki-Book/blob/main/docs/DISTRIBUTION_0_6_2.md)。
 
 | 入口 | 默认地址 | 权限 |
 | --- | --- | --- |
@@ -32,4 +32,4 @@ Windows / Linux 在各自原生系统执行 `python packaging/build_server.py` �
 python -X utf8 -m pytest tests -q
 ```
 
-源码继承了 main 分支的检索核心；`desktop/` 和旧桌面文档仅保留为历史参考，不参与 CLI 构建或运行。[第三方组件与权重来源](THIRD_PARTY_NOTICES.md)。Electron 应用的维护分支为 [main](https://github.com/wikigsroom/Jev-Wiki-Book/tree/main)。
+源码继承了 main 分支的检索核心；`desktop/` 和旧桌面文档仅保留为历史参考，不参与 CLI 构建或运行。[第三方组件与权重来源](THIRD_PARTY_NOTICES.md)。Electron 程序 `JevDocumentSearchDesktop` 的维护分支为 [main](https://github.com/wikigsroom/Jev-Wiki-Book/tree/main)。

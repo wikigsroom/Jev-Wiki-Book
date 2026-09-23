@@ -1,4 +1,4 @@
-# JEV CLI 部署
+# JevDocumentAdminQueryServer 部署
 
 此分支使用原生 Python 服务程序，不启动 Electron，不依赖 Node、Docker 或 WSL。发行二进制以完整目录交付，模型目录另置于程序旁边；离线运行不访问模型服务。Windows 和 Linux 必须分别在原生系统构建。
 
@@ -13,25 +13,29 @@
 
 ## 启动与使用
 
-Windows 解压 ZIP 后执行 `JEV-server.exe`；Linux 使用 `tar -xzf JEV-cli-0.6.1-linux-x64.tar.gz` 解压，再执行 `./JEV-server/JEV-server`，归档保留执行权限。完整保留 `_internal`，程序同级放置已有完整便携包的 `JEV-models`（NanoJev 原始 FP32 权重和 OCR）。也可用 `--models-dir` 指定现有模型目录，不需复制。
+Windows 解压 `JevDocumentAdminQueryServerWindowsX64-0.6.2.zip` 后执行 `JevDocumentAdminQueryServer.exe`；Linux 使用 `tar -xzf JevDocumentAdminQueryServerLinuxX64-0.6.2.tar.gz` 解压，再执行 `./JevDocumentAdminQueryServer/JevDocumentAdminQueryServer`，归档保留执行权限。完整保留 `_internal`，程序同级放置已有完整便携包的 `JEV-models`（NanoJev 原始 FP32 权重和 OCR）。也可用 `--models-dir` 指定现有模型目录，不需复制。
 
 ```text
-JEV-server/
-  JEV-server.exe 或 JEV-server
+JevDocumentAdminQueryServer/
+  JevDocumentAdminQueryServer.exe 或 JevDocumentAdminQueryServer
   _internal/
   JEV-models/
   server_data/   首次启动生成，包含凭据、索引、访问范围和审计日志
 ```
 
 ```powershell
-.\JEV-server.exe --models-dir D:\JEV-models --data-dir D:\JEV-data
+.\JevDocumentAdminQueryServer.exe --version
+.\JevDocumentAdminQueryServer.exe --models-dir D:\JEV-models --data-dir D:\JEV-data
 ```
 
 ```sh
-./JEV-server --models-dir /srv/jev/models --data-dir /srv/jev/data
+./JevDocumentAdminQueryServer --version
+./JevDocumentAdminQueryServer --models-dir /srv/jev/models --data-dir /srv/jev/data
 ```
 
 登录并改密后，输入服务器上的文档文件夹路径扫描；可依次扫描多个目录。右侧勾选允许访问的目录下的文档，保存访问范围。勾选“此目录全部”仅包含当前索引中的文档；以后新增或更新的文件需要重新扫描并确认开放。
+
+从旧版 `JEV-server` 升级时先停止服务并备份原数据目录。用新程序及整个 `_internal` 替换程序部分，保留 `JEV-models` 与 `server_data`（或原 `--data-dir`），更新服务或计划任务的可执行文件路径。程序改名不重置凭据、索引或文档开放范围。旧程序移至备份目录，避免误启。
 
 查询端只支持查询和查看返回原文，没有目录树、文档清单、全文件下载或管理 API。指定 library_id、路径或未知参数不会获得其他资料。撤回开放范围后，新查询立即受限；已读内容无法远程收回。
 

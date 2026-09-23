@@ -8,6 +8,7 @@ from pathlib import Path
 import signal
 import sys
 import threading
+from jev_core.release_info import SERVER_PROGRAM, VERSION
 
 
 def port(value):
@@ -19,7 +20,8 @@ def port(value):
 
 def main():
     root = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
-    parser = argparse.ArgumentParser(description="JEV CPU document query and administration server")
+    parser = argparse.ArgumentParser(prog=SERVER_PROGRAM, description="Local CPU document administration and query server")
+    parser.add_argument("--version", action="version", version=f"{SERVER_PROGRAM} {VERSION}")
     parser.add_argument("--data-dir", type=Path, default=root / "server_data")
     parser.add_argument("--models-dir", type=Path, default=root / "JEV-models")
     parser.add_argument("--admin-host", default="127.0.0.1", choices=["127.0.0.1", "0.0.0.0"])
@@ -62,7 +64,7 @@ def main():
     from jev_core.nanojev import LocalNanoJev
     from jev_core.parsing import DocumentParser, LocalOCR
     from jev_core.storage import KnowledgeStore, IndexJobs
-    from jev_core.web import PublicReader, ThreadServer, create_public_app, VERSION
+    from jev_core.web import PublicReader, ThreadServer, create_public_app
     from jev_core.admin import Credentials, Publication, create_admin_app, DEFAULT_PASSWORD
     from filelock import FileLock, Timeout
 
