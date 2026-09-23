@@ -1,5 +1,17 @@
 # JEV Windows 便携版验证记录
 
+## 0.6.2 — 2026-09-23
+
+桌面程序使用 `JevDocumentSearchDesktop`，独立服务器使用 `JevDocumentAdminQueryServer`；Windows / Linux 下载包与包内启动入口同步改名。本机通过 38 项 Python 回归、3 项 Node 生命周期测试、前端生产构建；CLI 本机通过 42 项回归。
+
+在独立测试目录实际启动 `JevDocumentSearchDesktopWindowsX64Portable-0.6.2.exe`，确认新的桌面进程名、后端握手、默认共享关闭、正常关窗及后端退出。报告为 `desktop/build/portable-verification-0.6.2.json`，发行目录不写入用户数据。
+
+包内 Python 与原始 NanoJev 通过 CPU FP32 查询，返回“资料室文档借阅期限为十四天”的原文及段落定位，首次查询 50.86 秒（单次合成样本，不是性能基准）。共享设置恢复、受限公开路由与监听器关闭通过，报告为 `desktop/build/sharing-verification-0.6.2.json`。桌面 EXE 的 Windows 文件属性和产品名均已核对为新名称与 0.6.2。
+
+[原生构建 35805961902](https://github.com/wikigsroom/Jev-Wiki-Book/actions/runs/35805961902) 的 Windows 2022 和 Ubuntu 22.04 均成功。服务器实际二进制通过 CPU 查询、DOCX/PDF/OCR、管理员改密与授权、公开接口边界、管理/查询表单、同端口重启、持久化、数据目录排他及缺少模型的非零退出检查；服务程序 `--version` 显示新程序名和版本。
+
+同一 Windows 构建还通过真实 Electron 界面验收：共享读取失败重试、启用/关闭、默认关闭、目录切换后只搜索新资料、重启恢复共享，以及无令牌时拒绝访问私有后端。CLI 编译源为 `d12033e7ace46a4e2ab7833d3982b68fb6d8c06d`；Electron 被验收的应用源为 `0a56548fee9376c709804918922345332c192ddc`。后续提交仅完善发布工具和文档，不改变已测试应用代码。验收 JSON、下载清单及 SHA256 随 Release 交付。
+
 ## 0.6.1 — 2026-09-23
 
 本机 Windows 11 完成 38 项 Python 回归（检索核心 29、后端及发行工具 9）、3 项 Node 生命周期测试和前端构建。新增验证涵盖取消请求保留并发名额、共享停止时的锁竞争、活动端口冲突、即时重启、索引退出收尾及旧发行文件的硬链接保护。

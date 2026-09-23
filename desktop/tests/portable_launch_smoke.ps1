@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Bundle)
+param([Parameter(Mandatory=$true)][string]$Bundle, [string]$OutputFile)
 $ErrorActionPreference = 'Stop'
 $bundlePath = (Resolve-Path -LiteralPath $Bundle).Path
 $projectPath = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -39,8 +39,10 @@ try {
     if ((Test-Path -LiteralPath $settingsPath) -and (Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).enabled) {
         throw 'A new installation unexpectedly enabled sharing'
     }
-    [pscustomobject]@{ passed=$true; executable=$exe.Name; native_portable_started=$true; normal_window_close=$true;
+    $report = [pscustomobject]@{ passed=$true; executable=$exe.Name; native_portable_started=$true; normal_window_close=$true;
         backend_exited=$true; default_sharing_disabled=$true; test_data=$testRoot } | ConvertTo-Json
+    if ($OutputFile) { [IO.File]::WriteAllText($OutputFile, $report, [Text.UTF8Encoding]::new($false)) }
+    $report
 } finally {
     if ($session) {
         $owned = Get-CimInstance Win32_Process -Filter "ProcessId=$($session.pid)" -ErrorAction SilentlyContinue

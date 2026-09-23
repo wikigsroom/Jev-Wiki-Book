@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import time
 
 from release_portable import PROJECT, RELEASE, VERSION, DOWNLOADS_MANIFEST
 
@@ -79,7 +80,14 @@ def main():
     title = args.title or f"JEV {VERSION} · Document Search Desktop / Admin Query Server"
     if release is None:
         gh("release", "create", tag, "--repo", args.repo, "--verify-tag", "--draft", "--title", title, "--notes-file", notes)
-        release = find_release(api, tag)
+        # GitHub's draft list can lag behind a successful create. Re-read it;
+        # never create another draft or replace assets during this short delay.
+        for delay in [0, 2, 4, 8]:
+            if delay:
+                time.sleep(delay)
+            release = find_release(api, tag)
+            if release is not None:
+                break
     if release is None:
         raise RuntimeError("Created release is not visible; retry without creating a duplicate")
     release_route = "/releases/" + str(release["id"])

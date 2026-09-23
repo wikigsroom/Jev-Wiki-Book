@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import tarfile
 import zipfile
-from release_portable import VERSION, SERVER_PROGRAM
+from release_portable import VERSION, SERVER_PROGRAM, server_stem
 
 PROJECT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser()
@@ -21,10 +21,16 @@ for path in sorted(ROOT.rglob(f"{SERVER_PROGRAM}*X64-{args.version}.*")):
     assert archive_hash == path.with_name(path.name + ".sha256").read_text().split()[0]
     archive = zipfile.ZipFile(path) if path.suffix == ".zip" else tarfile.open(path)
     with archive:
+        names = ([entry.filename for entry in archive.infolist() if not entry.is_dir()]
+                 if isinstance(archive, zipfile.ZipFile) else [entry.name for entry in archive.getmembers() if entry.isfile() or entry.issym() or entry.islnk()])
+        assert len(names) == len(set(names)), "Duplicate archive entries"
         def open_entry(name):
             return archive.open(name) if isinstance(archive, zipfile.ZipFile) else archive.extractfile(name)
         with open_entry(f"{SERVER_PROGRAM}/SHA256SUMS.txt") as stream:
             entries = [line.split("  ", 1) for line in stream.read().decode("utf-8").splitlines()]
+        expected_names = {SERVER_PROGRAM + "/" + relative for _, relative in entries}
+        assert len(expected_names) == len(entries), "Duplicate checksum entries"
+        assert set(names) == expected_names | {f"{SERVER_PROGRAM}/SHA256SUMS.txt"}, "Manifest must cover every payload file"
         for expected, relative in entries:
             assert not relative.startswith("/") and ".." not in Path(relative).parts
             assert "server_data" not in Path(relative).parts
@@ -42,6 +48,9 @@ for path in sorted(ROOT.rglob(f"{SERVER_PROGRAM}*X64-{args.version}.*")):
             assert archive.getmember(executable).mode & 0o111
         with open_entry(f"{SERVER_PROGRAM}/build-info.json") as stream:
             build = json.load(stream)
+        assert build["program"] == SERVER_PROGRAM and build["version"] == args.version
+        platform = "Windows" if path.suffix == ".zip" else "Linux"
+        assert path.name == server_stem(platform, args.version) + (".zip" if platform == "Windows" else ".tar.gz")
         reports.append({"archive": path.name, "sha256": archive_hash, "payload_files": len(entries), "build_commit": build["commit"], "verified": True})
 assert len(reports) == 2, reports
 output = PROJECT / f"release/native-archive-verification-{args.version}.json"

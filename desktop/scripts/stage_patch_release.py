@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 from prepare_runtime import sha256, WEIGHT_SHA256
-from release_portable import VERSION, PROJECT, RELEASE, BUNDLE, DESKTOP_STEM, DOWNLOADS_MANIFEST, server_stem
+from release_portable import VERSION, PROJECT, RELEASE, BUNDLE, DESKTOP_PROGRAM, SERVER_PROGRAM, DESKTOP_STEM, DOWNLOADS_MANIFEST, server_stem
 
 
 def main():
@@ -61,6 +61,8 @@ def main():
     sums.write_text("\n".join(f"{item['sha256']}  {item['name']}" for item in assets) + "\n", encoding="utf-8")
     assets.append({"name": sums.name, "size": sums.stat().st_size, "sha256": sha256(sums)})
     metadata = {"version": VERSION, "desktop_application_commit": args.desktop_commit, "cli_build_commit": args.cli_commit,
+                "programs": [{"name": DESKTOP_PROGRAM, "role": "Desktop document search with optional restricted Web query", "platforms": ["WindowsX64"]},
+                             {"name": SERVER_PROGRAM, "role": "Document administration and restricted Web query server", "platforms": ["WindowsX64", "LinuxX64"]}],
                 "native_build_run": f"https://github.com/wikigsroom/Jev-Wiki-Book/actions/runs/{args.run_id}",
                 "models_release": "https://github.com/wikigsroom/Jev-Wiki-Book/releases/tag/v0.6.0",
                 "models_manifest": "https://github.com/wikigsroom/Jev-Wiki-Book/releases/download/v0.6.0/JEV-models-0.6.0-downloads.json",
